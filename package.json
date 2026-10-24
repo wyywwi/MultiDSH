@@ -4,6 +4,12 @@
   "private": true,
   "type": "module",
   "description": "再三求索（MultiDSH）— a multi-host client suite for DeepSeek Harness",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wyywwi/MultiDSH.git"
+  },
+  "homepage": "https://github.com/wyywwi/MultiDSH#readme",
   "bin": {
     "multidsh": "bin/multidsh.mjs"
   },
