@@ -1,8 +1,7 @@
 # MultiDSH Android 客户端（0.2.0）
 
-Android 客户端：WebView 承载的 MultiDSH 管理界面 + 原生顶部栏。
-当前版本是 **client only**；Android 作为 Host 暂不支持，Host 仍请运行在
-Windows / Linux（设计取舍见 [Android Host 可行性分析](../docs/ANDROID-HOST.md)）。
+Android 客户端只作为客户端。Android 设备不运行 DSH Host。需要 Host 时，请在
+Windows / Linux 上运行（见 [Android Host 支持范围](../docs/ANDROID-HOST.md)）。
 
 ## 1. 当前能力
 
@@ -22,14 +21,13 @@ Windows / Linux（设计取舍见 [Android Host 可行性分析](../docs/ANDROID
 
 明确没有：演示模式、Android 公网 Host、二维码邀请。
 
-## 2. 构建（ZJU-L40，无 Gradle）
+## 2. 构建（无 Gradle）
 
 需要：Android SDK build-tools 34、platform android-34、JDK 11（脚本默认
 `~/android-sdk` 与 `~/jdk11home`）。
 
 ```bash
-ssh ZJU-L40
-cd ~/multidsh-android
+cd multidsh/android
 bash build.sh
 ```
 
@@ -61,7 +59,7 @@ zipalign    -> 4 字节对齐
 apksigner   -> debug keystore 签名
 ```
 
-## 3. 安装 / 验证
+## 3. 安装与截图
 
 模拟器：
 
@@ -88,20 +86,15 @@ bash verify.sh dump home
 - **混合内容**：`MIXED_CONTENT_COMPATIBILITY_MODE`，不无条件允许 HTTP 资源。
 - **owner 自保护**：本机设备不显示吊销按钮。
 
-仍待改进：
-
-- 生产上架前需要自己的 release keystore；当前 APK 仍用 debug keystore 签名。
-
 ## 5. 已知限制
 
-1. **Android 目前不支持作为 Host**。Host 仍请运行在 Windows/Linux；原因见
-   [Android Host 可行性分析](../docs/ANDROID-HOST.md)。
-2. 真实 host 的 DSH Web UI 在手机上的渲染只做了基本 WebView 验证，复杂 DSH
-   页面（终端、拖拽、文件选择）需要继续适配。
+1. **Android 不支持作为 Host**。Host 请运行在 Windows / Linux；范围见
+   [Android Host 支持范围](../docs/ANDROID-HOST.md)。
+2. 复杂 DSH 页面（终端、拖拽、文件选择）尚未完整适配手机 WebView。
 3. 未适配平板/横屏/大字体；当前优先手机竖屏。
 4. 未实现二维码扫描加入、Host 编辑页、通知栏常驻服务。
-5. 默认 Directory 是示例地址 `https://multidsh.example.com`，首次使用必须在
-   设置页改成自己的地址。
+5. 本项目不提供公共 Directory。首次使用时，请在设置页填写自己部署的 Directory 地址。
+6. 当前 APK 使用 debug keystore 签名；正式发布前请使用自己的 release keystore。
 
 ## 6. 目录
 

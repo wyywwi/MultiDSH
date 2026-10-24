@@ -165,7 +165,7 @@ cd multidsh
   自动带 `--no-sandbox` 重试一次，保证「双击」在任何环境都能开窗；
 - 配置在 exe 旁边 `multidsh-config.json`（便携，不写 `%APPDATA%`），首次启动进入真实引导页。
 
-打包后的验证（本机实测）：双击 → 正式引导页 → 设置 → 演示模式 → 示例数据；退出后回到引导页，且退出演示不会影响真实池配置。
+打包后的行为：双击 → 正式引导页 → 设置 → 演示模式 → 示例数据；退出后回到引导页，退出演示不会影响真实池配置。
 
 ## 截图冒烟测试（无需 Directory）
 
@@ -281,5 +281,5 @@ owner 可见待审批 → 批准 → 心跳 → 列表 → pair → 吊销 的�
 - 离线主机的「打开」仍会请求 pair（Directory 返回 `online:false`），加载可能失败，
   失败后内联报错，重新点击可重试。
 - 桌面端以 `client` 身份加入，不替 host 发心跳；desktop 自身的 lastSeen 不会更新。
-- smoke 为纯前端渲染验证，不覆盖真实 pair → cookie → DSH UI 流程（该链路由
-  Directory/Host 的 E2E 与 `test/directory-client.test.cjs` 覆盖协议部分）。
+- smoke 只覆盖前端渲染。真实 pair → cookie → DSH UI 流程使用 `--live-smoke` 和
+  `test/directory-client.test.cjs` 覆盖。

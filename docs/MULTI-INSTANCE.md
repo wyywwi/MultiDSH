@@ -137,15 +137,4 @@ Directory 把它保存在设备记录/心跳里，桌面端的「在线主机」
 - 插件修改版 DSH 请确认其 `dsh web` 仍然支持 `--host/--port/--public-url/--trusted-host`
   参数（host supervisor 依赖这些参数和 `dsh web: <url>?token=` 输出行）。
 
-## 已验证
-
-在 Windows 本机用本地 Node Directory + fake dsh 做了集成验证（`node scripts/test-multidsh-cli.mjs`）：
-
-- 同一台机器创建 `cli-a` / `cli-b` 两个 host（独立端口 4280/3280、4281/3281，独立 `DSH_HOME`）；
-- 两个设备分别审批后 `status=active`，Directory 中 2 个 active host；
-- 两个 `host.json` 共享同一 `machineId`/`machineName`，Directory 两条 active host 记录也带回同样字段，
-  桌面端可把它们归到同一机器组；
-- `multidsh list/status` 同时显示两个 running，health OK；
-- `stop`/`remove` 后各目录删除，互不影响。
-
 真实 DSH 版本/插件差异只取决于 `--dsh-bin` 指向的目录，不需要改 MultiDSH 代码。

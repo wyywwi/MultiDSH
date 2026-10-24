@@ -13,7 +13,7 @@
 | `icon-black.ico` | Windows 多尺寸图标（浅色版黑色鲸鱼，exe / 窗口 / 任务栏 / 任务管理器默认使用） |
 | `tray.png` / `tray-16.png` | 托盘图标：黑色鲸鱼 + 不透明白色圆角底 |
 | `preview-512.png` | 预览（深色版） |
-| `render-legacy-geometry.py` | 旧版"几何生成三鲸鱼"脚本，仅留档，不再使用 |
+| `render-legacy-geometry.py` | 旧图标几何生成脚本（可选） |
 
 ## 重新生成
 

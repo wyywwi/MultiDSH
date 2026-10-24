@@ -4,7 +4,7 @@
 **部署后的地址示例：https://multidsh.example.com**（Worker `multidsh-directory` + D1 `multidsh_directory` + 自定义域）。
 
 - `src/app.js`：纯 `Request -> Response` 路由，不依赖 Node 内置模块，Node 下可直接测试；
-- `src/crypto.js`：WebCrypto 版 id / token / 池码 / HMAC nonce，**线格式与 `packages/protocol` 完全一致**（Host sidecar 用 Node 版 `verifyNonce` 验签，测试里有交叉验证）；
+- `src/crypto.js`：WebCrypto 版 id / token / 池码 / HMAC nonce，**线格式与 `packages/protocol` 完全一致**（Host sidecar 用 Node 版 `verifyNonce` 验签）；
 - `src/storage.js`：D1 仓储（pool/device/token/liveness）；无 D1 的本地开发退回内存；
 - `src/index.js`：Worker 入口，`env.FLEET_DB` 存在时用 D1Repository；本地无 binding 时用内存仓库；
 - `schema.sql`：D1 `pools` / `devices` / `device_liveness` 表；
@@ -20,7 +20,9 @@ cd multidsh
 Invoke-RestMethod http://127.0.0.1:8788/api/health
 ```
 
-与 E2E 联合验证（Worker 目录 + 真实 Host sidecar + 真实 dsh）：
+## 端到端测试
+
+与真实 Host sidecar 和真实 dsh 联调：
 
 ```powershell
 .\bin\node.cmd scripts\e2e.mjs --worker
