@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+// Thin launcher so users can run `./multidsh ...` from a checkout, or symlink
+// this file into ~/.local/bin. The real implementation lives in bin/multidsh.mjs.
+import { realpathSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const here = path.dirname(realpathSync(fileURLToPath(import.meta.url)));
+await import(pathToFileURL(path.join(here, 'bin', 'multidsh.mjs')).href);

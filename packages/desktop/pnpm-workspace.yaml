@@ -1,0 +1,5 @@
+# pnpm >= 10 blocks dependency postinstall scripts by default.
+# Electron's postinstall downloads the platform binary, so allow it explicitly.
+# Note: pnpm 11 renamed the v10 setting `onlyBuiltDependencies` to `allowBuilds`.
+allowBuilds:
+  electron: true

@@ -1,0 +1,15 @@
+{
+  "name": "@multidsh/directory-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MultiDSH directory on Cloudflare Workers (D1-backed)",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "npx wrangler dev",
+    "db:create": "npx wrangler d1 create multidsh_directory",
+    "db:schema": "npx wrangler d1 execute multidsh_directory --file schema.sql --remote",
+    "deploy": "npx wrangler deploy",
+    "test": "node --test test"
+  }
+}

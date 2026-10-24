@@ -1,0 +1,24 @@
+{
+  "name": "@multidsh/directory",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MultiDSH Directory (M0): pools, device approval, heartbeats and pairing URL signing.",
+  "type": "module",
+  "main": "./src/app.js",
+  "exports": {
+    ".": "./src/app.js",
+    "./app": "./src/app.js",
+    "./store": "./src/store.js"
+  },
+  "bin": {
+    "multidsh-directory": "./bin.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node bin.js",
+    "test": "node --test test"
+  },
+  "dependencies": {}
+}

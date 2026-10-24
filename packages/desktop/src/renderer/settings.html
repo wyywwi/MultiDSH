@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:;"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>MultiDSH 设置</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="settings.css" />
+  </head>
+  <body class="settings-body">
+    <header class="settings-window-head">
+      <div class="settings-window-title">
+        <div class="settings-mark" aria-hidden="true">M</div>
+        <div>
+          <h1>设置</h1>
+          <p>MultiDSH · 连接、设备与 DSH 主机实例</p>
+        </div>
+      </div>
+      <button id="settings-window-close" class="btn btn-secondary btn-sm" type="button">关闭</button>
+    </header>
+
+    <main class="settings-window-main">
+      <section class="setting-card">
+        <div class="setting-card-head">
+          <div>
+            <h2>连接与外观</h2>
+            <p>Directory 地址只影响当前客户端的连接；每个 DSH 实例会保存自己的池身份。</p>
+          </div>
+        </div>
+        <form id="directory-form" class="settings-form">
+          <label class="field-label" for="directory-input">Directory 地址</label>
+          <div class="inline-control">
+            <input
+              id="directory-input"
+              class="text-input"
+              type="text"
+              inputmode="url"
+              placeholder="https://multidsh.example.com"
+              spellcheck="false"
+              autocomplete="off"
+            />
+            <button id="directory-save-btn" class="btn btn-secondary btn-sm" type="submit">保存地址</button>
+          </div>
+          <p class="hint">切换 Directory 会断开当前池，需要重新创建或加入。</p>
+        </form>
+        <div class="settings-divider"></div>
+        <div class="inline-field">
+          <span class="field-label">外观</span>
+          <div class="theme-switch" role="group" aria-label="外观">
+            <button id="theme-light-btn" class="theme-option" type="button" data-theme-choice="light" aria-pressed="true">浅色</button>
+            <button id="theme-dark-btn" class="theme-option" type="button" data-theme-choice="dark" aria-pressed="false">深色</button>
+          </div>
+        </div>
+        <div class="inline-field">
+          <span class="field-label">主机页签缓存</span>
+          <div class="inline-control">
+            <input id="view-cache-size" class="text-input" type="number" min="1" max="6" step="1" />
+            <button id="view-cache-save" class="btn btn-secondary btn-sm" type="button">保存</button>
+          </div>
+        </div>
+        <p class="hint">
+          关闭主机时页面只隐藏、不销毁，再次打开可以直接显示（实测可省 1.7–4.6 秒）。
+          这里设置最多保留几个最近打开过的页面，每个页面约占 100–200 MB 内存；设为 1 表示只保留当前页。
+        </p>
+      </section>
+
+      <section class="setting-card">
+        <div class="setting-card-head">
+          <div>
+            <h2>演示模式</h2>
+            <p>只显示示例设备，不连接 Directory，也不会修改池或主机。你可以随时进入或退出。</p>
+          </div>
+          <div class="setting-card-actions">
+            <button id="demo-mode-btn" class="btn btn-secondary btn-sm" type="button">进入演示模式</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="setting-card">
+        <div class="setting-card-head">
+          <div>
+            <h2>DSH 主机实例</h2>
+            <p>
+              每台机器可以同时拥有多个实例，每个实例有自己的 host.json、DSH_HOME、端口和 DSH 登录/API key；
+              <strong>启动已有实例不会重新初始化</strong>，设备身份和登录状态会保留。
+            </p>
+          </div>
+          <div class="setting-card-actions">
+            <button id="install-runtime" class="btn btn-secondary btn-sm" type="button">安装 Node/DSH</button>
+            <button id="refresh-hosts" class="btn btn-secondary btn-sm" type="button">刷新</button>
+            <button id="toggle-create-host" class="btn btn-primary btn-sm" type="button">+ 新建实例</button>
+          </div>
+        </div>
+
+        <div class="host-create" id="host-create-panel" hidden>
+          <h3 id="host-form-title" class="host-form-title">新建实例</h3>
+          <form id="create-host-form" class="settings-form">
+            <div class="form-grid">
+              <label class="field-label" for="host-name">
+                实例名称
+                <input id="host-name" class="text-input" type="text" maxlength="60" autocomplete="off" />
+              </label>
+              <label class="field-label" for="host-pool-code">
+                池码
+                <input id="host-pool-code" class="text-input code-input" type="password" maxlength="8" spellcheck="false" autocomplete="off" />
+              </label>
+              <label class="field-label form-span-2" for="host-dsh-bin">
+                DSH bin.js
+                <input id="host-dsh-bin" class="text-input" type="text" spellcheck="false" autocomplete="off" />
+              </label>
+              <label class="field-label form-span-2" for="host-dsh-home">
+                DSH_HOME（可选；留空使用实例独立目录）
+                <input id="host-dsh-home" class="text-input" type="text" placeholder="留空 = 新实例自己的 dsh-home" spellcheck="false" autocomplete="off" />
+              </label>
+              <label class="field-label form-span-2" for="host-credentials-source">
+                复用已有实例的 DSH 登录/API key
+                <select id="host-credentials-source" class="text-input">
+                  <option value="">不复制（稍后在 DSH 里登录）</option>
+                </select>
+              </label>
+              <label class="field-label" for="host-public-url">
+                Public URL
+                <input id="host-public-url" class="text-input" type="text" placeholder="留空 = http://127.0.0.1:<admin 端口>" spellcheck="false" autocomplete="off" />
+              </label>
+              <label class="field-label" for="host-admin-port">
+                admin 端口
+                <input id="host-admin-port" class="text-input" type="number" min="1" max="65535" placeholder="自动分配" />
+              </label>
+              <label class="field-label" for="host-dsh-port">
+                dsh 端口
+                <input id="host-dsh-port" class="text-input" type="number" min="1" max="65535" placeholder="自动分配" />
+              </label>
+              <label class="field-label" for="host-node-bin">
+                node.exe（可选）
+                <input id="host-node-bin" class="text-input" type="text" placeholder="留空 = 自动检测" spellcheck="false" autocomplete="off" />
+              </label>
+            </div>
+            <p class="hint">
+              创建后会以 host 身份加入当前池，需要在主界面的「待审批」里由池主批准。DSH_HOME 里保存该实例的登录和
+              API key；填一个已有目录可以复用原来的登录状态。
+            </p>
+            <div class="form-actions">
+              <button id="create-host-submit" class="btn btn-primary btn-sm" type="submit">创建并加入池</button>
+              <button id="cancel-create-host" class="btn btn-secondary btn-sm" type="button">取消</button>
+            </div>
+          </form>
+        </div>
+
+        <p id="host-manager-notice" class="settings-notice" hidden></p>
+        <div id="host-instances" class="host-list">
+          <p class="hint">加载实例中…</p>
+        </div>
+      </section>
+
+      <section class="setting-card">
+        <div class="setting-card-head">
+          <div>
+            <h2>当前设备</h2>
+            <p>池主可以在主界面的设备列表里审批、停用主机；脱离池和删除会同时处理这里对应的本地实例。</p>
+          </div>
+        </div>
+        <div id="device-summary" class="device-summary"></div>
+      </section>
+    </main>
+
+    <div id="settings-toast" class="settings-toast" hidden></div>
+    <script src="settings.js"></script>
+  </body>
+</html>

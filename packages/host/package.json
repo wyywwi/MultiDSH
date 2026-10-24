@@ -1,0 +1,12 @@
+{
+  "name": "@multidsh/host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "multidsh-host": "./bin.js"
+  },
+  "scripts": {
+    "test": "node --test test"
+  }
+}

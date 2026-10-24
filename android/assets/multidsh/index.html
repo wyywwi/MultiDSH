@@ -1,0 +1,1825 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>MultiDSH</title>
+<style>
+  /* ---------- theme tokens (light is the default) ---------- */
+  :root{
+    --bg:#f4f6f9; --card:#ffffff; --card2:#eef1f6; --line:#dde2ea;
+    --fg:#1a2230; --muted:#6b7686; --accent:#2563eb; --accent-fg:#ffffff;
+    --ok:#128a4a; --warn:#a86400; --danger:#c62828;
+    --ok-bg:#e6f6ee; --warn-bg:#fff4e0; --err-bg:#fdecea; --err-line:#f0b9b3; --err-fg:#8a1c12;
+    --shadow:0 1px 2px rgba(16,24,40,.06);
+    --radius:14px;
+  }
+  html[data-theme="dark"]{
+    --bg:#0f1115; --card:#171b22; --card2:#1d232c; --line:#2a3240;
+    --fg:#e8edf5; --muted:#8b97a8; --accent:#4f8cff; --accent-fg:#ffffff;
+    --ok:#39d98a; --warn:#ffb84d; --danger:#ff6b6b;
+    --ok-bg:#14251d; --warn-bg:#2b2214; --err-bg:#2a1a1c; --err-line:#5b2a2e; --err-fg:#ffb3b3;
+    --shadow:none;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,Roboto,"Noto Sans CJK SC","PingFang SC",sans-serif;
+    font-size:16px;-webkit-text-size-adjust:100%}
+  body{
+    padding:calc(10px + env(safe-area-inset-top))
+            calc(14px + env(safe-area-inset-right))
+            calc(30px + env(safe-area-inset-bottom))
+            calc(14px + env(safe-area-inset-left));
+  }
+  main, .utilbar{max-width:760px;margin-left:auto;margin-right:auto}
+
+  /* ---------- small utility row (the real title bar lives in the native shell) ---------- */
+  .utilbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    min-height:44px;margin-bottom:10px}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--muted)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
+  .dot.ok{background:var(--ok)} .dot.err{background:var(--danger)} .dot.wait{background:var(--warn)}
+
+  /* ---------- cards / typography ---------- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+  label{display:block;font-size:13px;color:var(--muted);margin:0 0 7px;letter-spacing:.2px}
+  .hint{color:var(--muted);font-size:13px;line-height:1.5;margin:9px 0 0}
+  .muted{color:var(--muted);font-size:13px}
+  .status{font-size:13px;color:var(--muted);min-height:18px;margin:2px 2px 10px;white-space:pre-wrap;word-break:break-word}
+  .empty{color:var(--muted);font-size:13.5px;text-align:center;padding:12px 4px}
+  .hidden{display:none !important}
+
+  /* ---------- form controls (44dp minimum touch targets) ---------- */
+  input{display:block;width:100%;min-width:0;height:46px;background:var(--card2);
+    border:1px solid var(--line);border-radius:10px;color:var(--fg);font-size:16px;
+    padding:0 12px;outline:none}
+  input:focus{border-color:var(--accent)}
+  input.code{letter-spacing:3px;text-transform:uppercase;text-align:center;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .inputrow{display:flex;gap:8px;align-items:stretch}
+  .inputrow input{flex:1 1 auto;min-width:0;width:auto}
+  .inputrow .btn{flex:0 0 auto}
+
+  button{min-height:44px;border:0;border-radius:10px;font-size:15px;font-weight:600;
+    padding:0 16px;color:var(--accent-fg);background:var(--accent);cursor:pointer;
+    white-space:nowrap;font-family:inherit}
+  button:active{filter:brightness(.94)}
+  button:disabled{opacity:.45;cursor:default}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--fg);font-weight:500}
+  .btn.small{font-size:14px;padding:0 12px;border-radius:9px}
+  .btn.block{display:block;width:100%;margin-top:12px}
+  .btn.danger{background:var(--danger);color:#fff}
+  .btn.danger-ghost{background:transparent;border:1px solid var(--danger);color:var(--danger);font-weight:500}
+  .btn.active{background:var(--accent);color:var(--accent-fg)}
+  .seg{display:flex;gap:8px}
+  .seg .btn{flex:1 1 0;min-width:0}
+
+  /* ---------- error boxes (closable) ---------- */
+  .error{position:relative;background:var(--err-bg);border:1px solid var(--err-line);
+    color:var(--err-fg);border-radius:10px;padding:11px 52px 11px 12px;font-size:13px;
+    line-height:1.5;white-space:pre-wrap;word-break:break-word;margin:0 0 12px}
+  .error-close{position:absolute;right:0;top:0;width:44px;height:44px;min-height:44px;
+    padding:0;background:transparent;border:0;color:var(--err-fg);font-size:22px;
+    line-height:44px;font-weight:400}
+
+  /* ---------- pool ---------- */
+  .pool-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .pool-head .head-main{min-width:0;flex:1 1 auto}
+  .pool-name{font-size:19px;font-weight:700;word-break:break-all;line-height:1.3}
+  .pool-meta{color:var(--muted);font-size:12.5px;margin-top:5px;word-break:break-all}
+  .head-acts{display:flex;gap:8px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end}
+
+  .code-row{display:flex;gap:8px;align-items:stretch}
+  .code-big{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;
+    font-size:clamp(18px,6.2vw,28px);letter-spacing:clamp(1px,.9vw,5px);
+    color:var(--ok);background:var(--card2);border:1px dashed var(--line);
+    border-radius:10px;padding:8px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .code-row .btn{flex:0 0 auto}
+
+  .badge{display:inline-block;background:var(--accent);color:var(--accent-fg);border-radius:99px;
+    font-size:12px;font-weight:700;line-height:18px;padding:0 9px;vertical-align:middle}
+  .badge.self{background:var(--card2);color:var(--muted);border:1px solid var(--line)}
+  .pill{display:inline-block;font-size:11.5px;line-height:18px;border-radius:99px;padding:0 8px;
+    border:1px solid var(--line);color:var(--muted);white-space:nowrap;vertical-align:middle}
+  .pill.active{color:var(--ok);border-color:var(--line);background:var(--ok-bg)}
+  .pill.pending{color:var(--warn);background:var(--warn-bg)}
+  .pill.revoked{color:var(--danger)}
+  .pill.current{color:var(--accent-fg);background:var(--accent);border-color:var(--accent);font-weight:700}
+
+  .list{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+  .group{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px}
+  .group-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+  .group-name{font-weight:700;font-size:14.5px;word-break:break-all}
+  .device{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+  .device + .device{margin-top:8px}
+  .device.current{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37,99,235,.16)}
+  .device .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .device .dev-main{min-width:0;flex:1 1 auto}
+  .device .name{font-weight:600;font-size:15px;word-break:break-all;line-height:1.35}
+  .device .meta{color:var(--muted);font-size:12.5px;margin-top:4px;word-break:break-all}
+  .device .acts{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+  .device .acts .btn{min-height:44px}
+
+  /* ---------- modal ---------- */
+  .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    padding:20px}
+  .modal-mask{position:absolute;inset:0;background:rgba(10,15,25,.45)}
+  .modal-box{position:relative;width:100%;max-width:420px;background:var(--card);
+    border:1px solid var(--line);border-radius:16px;padding:18px;
+    box-shadow:0 16px 48px rgba(0,0,0,.28)}
+  .modal-title{font-size:17px;font-weight:700;margin-bottom:8px}
+  .modal-msg{font-size:14px;color:var(--muted);line-height:1.55;margin-bottom:16px;word-break:break-word}
+  .modal-acts{display:flex;justify-content:flex-end;gap:10px}
+
+  /* ---------- toast ---------- */
+  .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);z-index:60;max-width:86vw;background:#1f2937;color:#fff;
+    font-size:13.5px;line-height:1.45;padding:10px 16px;border-radius:99px;
+    box-shadow:0 8px 24px rgba(0,0,0,.3);word-break:break-word}
+</style>
+</head>
+<body>
+
+<div id="utilbar" class="utilbar">
+  <span class="chip"><span id="net-dot" class="dot wait"></span><span id="net-text">连接检查中</span></span>
+  <button id="btn-settings" class="btn ghost small" type="button">设置</button>
+</div>
+
+<main>
+  <!-- ============================ HOME ============================ -->
+  <section id="home-view" class="view">
+    <div class="card">
+      <label for="home-dir">Directory 地址</label>
+      <div class="inputrow">
+        <input id="home-dir" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://你的-directory">
+        <button id="home-save-dir" class="btn ghost small" type="button">保存</button>
+      </div>
+      <p class="hint" id="health-hint">正在检查连接…</p>
+    </div>
+
+    <div class="card hidden" id="current-pool-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div style="min-width:0">
+          <div style="font-weight:700;font-size:15px" id="current-pool-name">我的池</div>
+          <div class="hint" id="current-pool-meta" style="margin-top:4px"></div>
+        </div>
+        <button id="btn-enter-pool" class="btn small" type="button">进入池</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <label for="home-device">设备名</label>
+      <input id="home-device" type="text" maxlength="40" autocapitalize="off" placeholder="本机显示名称">
+    </div>
+
+    <div class="card">
+      <label for="home-create-name">池名</label>
+      <input id="home-create-name" type="text" maxlength="40" placeholder="我的 DSH 池">
+      <label for="home-create-key" style="margin-top:12px">创建密钥（服务端启用时需要）</label>
+      <input id="home-create-key" type="password" autocomplete="off" placeholder="没有可留空">
+      <button id="btn-create" class="btn block" type="button">创建池（成为 owner）</button>
+      <p class="hint">创建后得到 8 位池码（24 小时有效），把池码发给其他设备即可加入。</p>
+    </div>
+
+    <div class="card">
+      <label for="join-code">凭池码加入</label>
+      <div class="inputrow">
+        <input id="join-code" class="code" type="text" maxlength="8" inputmode="text"
+               autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="8 位池码">
+        <button id="btn-join" class="btn small" type="button">加入</button>
+      </div>
+      <p class="hint">以客户端身份加入，等待 owner 批准后即可打开池内主机。</p>
+    </div>
+
+    <div id="home-status" class="status"></div>
+    <div id="home-error" class="error hidden">
+      <span class="error-text" id="home-error-text"></span>
+      <button class="error-close" type="button" data-close="home-error" aria-label="关闭">×</button>
+    </div>
+  </section>
+
+  <!-- ============================ POOL ============================ -->
+  <section id="pool-view" class="view hidden">
+    <div class="card pool-head">
+      <div class="head-main">
+        <div class="pool-name" id="pool-name">我的池</div>
+        <div class="pool-meta" id="pool-meta"></div>
+      </div>
+      <div class="head-acts">
+        <button id="btn-pool-settings" class="btn ghost small" type="button">设置</button>
+        <button id="btn-leave" class="btn ghost small danger-ghost" type="button">退出池</button>
+      </div>
+    </div>
+
+    <!-- member: waiting / approved -->
+    <div class="card hidden" id="member-status-card">
+      <div class="top" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div style="min-width:0">
+          <div style="font-weight:700;font-size:15px">本机成员状态</div>
+          <div class="hint" id="member-status-text" style="margin-top:5px"></div>
+        </div>
+        <span class="pill pending" id="member-status-pill">等待审批</span>
+      </div>
+      <button id="btn-retry-check" class="btn ghost block" type="button">重新检查</button>
+    </div>
+
+    <!-- owner: join code -->
+    <div class="card hidden" id="code-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">
+        <label style="margin:0">池码（24 小时有效）</label>
+        <button id="btn-code-rotate" class="btn ghost small" type="button">轮换</button>
+      </div>
+      <div class="code-row">
+        <code class="code-big" id="join-code-display">--------</code>
+        <button id="btn-code-copy" class="btn ghost small" type="button">复制</button>
+        <button id="btn-code-toggle" class="btn ghost small" type="button">隐藏</button>
+      </div>
+      <p class="hint" id="code-exp"></p>
+    </div>
+
+    <!-- owner: pending approvals -->
+    <div class="card hidden" id="pending-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <label style="margin:0">待审批</label>
+        <span class="badge" id="pending-count">0</span>
+      </div>
+      <div class="list" id="pending-list"></div>
+    </div>
+
+    <!-- local device -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <label style="margin:0">本机设备</label>
+        <span class="muted" id="mydev-state"></span>
+      </div>
+      <div class="inputrow" style="margin-top:8px">
+        <input id="mydev-name" type="text" maxlength="40" autocapitalize="off" placeholder="本机设备名">
+        <button id="btn-rename" class="btn ghost small" type="button">改名</button>
+      </div>
+    </div>
+
+    <!-- devices -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <label style="margin:0">设备</label>
+        <button id="btn-refresh" class="btn ghost small" type="button">刷新</button>
+      </div>
+      <div class="list" id="device-groups"></div>
+    </div>
+
+    <div id="pool-error" class="error hidden">
+      <span class="error-text" id="pool-error-text"></span>
+      <button class="error-close" type="button" data-close="pool-error" aria-label="关闭">×</button>
+    </div>
+  </section>
+
+  <!-- ============================ SETTINGS ============================ -->
+  <section id="settings-view" class="view hidden">
+    <button id="settings-back" class="btn ghost small" type="button" style="margin-bottom:12px">← 返回</button>
+
+    <div class="card">
+      <label for="settings-dir">Directory 地址</label>
+      <div class="inputrow">
+        <input id="settings-dir" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://你的-directory">
+        <button id="settings-save-dir" class="btn ghost small" type="button">保存</button>
+      </div>
+      <p class="hint">保存后原生壳会持久化并重新加载页面。</p>
+    </div>
+
+    <div class="card">
+      <label for="settings-device">设备名</label>
+      <div class="inputrow">
+        <input id="settings-device" type="text" maxlength="40" autocapitalize="off" placeholder="本机显示名称">
+        <button id="settings-save-device" class="btn ghost small" type="button">保存</button>
+      </div>
+      <p class="hint">用于创建/加入池以及在其他设备上的显示名。</p>
+    </div>
+
+    <div class="card">
+      <label>主题</label>
+      <div class="seg">
+        <button id="theme-light" class="btn ghost" type="button">浅色</button>
+        <button id="theme-dark" class="btn ghost" type="button">深色</button>
+      </div>
+      <p class="hint">默认浅色；选择会保存在本机。</p>
+    </div>
+
+    <div class="card">
+      <label>关于</label>
+      <p class="hint" style="margin-top:0">版本：<span id="settings-version">MultiDSH Android 0.2.0</span></p>
+      <p class="hint" style="margin-top:6px">Directory：<span id="settings-directory">-</span></p>
+      <p class="hint" style="margin-top:6px">协议：protocol 1 · 页面与原生壳通过 bridge 通信。</p>
+    </div>
+
+    <div class="card">
+      <label>Android Host</label>
+      <p class="hint" style="margin-top:0">当前版本仅作为客户端。Host 请在 Windows 或 Linux 上运行；Android 手机作为 Host 暂不支持。</p>
+    </div>
+
+    <div class="card">
+      <label>本地数据</label>
+      <p class="hint" style="margin-top:0">清除本机保存的池会话、设备名与主题设置，Directory 地址会保留。</p>
+      <button id="btn-clear-data" class="btn ghost block danger-ghost" type="button">清除本地数据</button>
+    </div>
+
+    <div id="settings-error" class="error hidden">
+      <span class="error-text" id="settings-error-text"></span>
+      <button class="error-close" type="button" data-close="settings-error" aria-label="关闭">×</button>
+    </div>
+  </section>
+</main>
+
+<div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="modal-mask" data-confirm="cancel"></div>
+  <div class="modal-box">
+    <div class="modal-title" id="confirm-title">确认</div>
+    <div class="modal-msg" id="confirm-msg"></div>
+    <div class="modal-acts">
+      <button id="confirm-cancel" class="btn ghost" type="button">取消</button>
+      <button id="confirm-ok" class="btn danger" type="button">确定</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ======================================================================
+   * Bridge contract (implemented by the native shell):
+   *   every MDNative method takes bridgeToken as its first argument.
+   *   The shell replaces a unique placeholder token literal in this HTML
+   *   (see TOKEN_LITERAL below) with a random token before loading. Without
+   *   and only use fetch().
+   * ====================================================================== */
+  var APP_VERSION = "0.2.0";
+  var PROTOCOL = 1;
+  var DEFAULT_DIRECTORY = "https://multidsh.example.com";
+  var DEFAULT_POOL_NAME = "我的 DSH 池";
+  var FALLBACK_POOL_NAME = "我的池";
+  var POLL_MS = 15000;
+  var HEARTBEAT_MS = 30000;
+  var ONLINE_WINDOW_MS = 90000;
+
+  var LS = {
+    dir: "md.directoryUrl",
+    poolId: "md.poolId",
+    token: "md.deviceToken",
+    deviceId: "md.deviceId",
+    role: "md.role",
+    poolName: "md.poolName",
+    joinCode: "md.joinCode",
+    codeExp: "md.codeExpiresAt",
+    deviceName: "md.deviceName",
+    theme: "md.theme",
+    codeHidden: "md.codeHidden",
+    lastHost: "md.lastHostId"
+  };
+
+  var TOKEN_LITERAL = "__MD_BRIDGE_TOKEN__";
+  // Built by concatenation so the shell's literal replacement can never corrupt
+  // the placeholder detection below.
+  var TOKEN_PLACEHOLDER = "__MD" + "_BRIDGE_TOKEN__";
+  var BRIDGE_TOKEN = window["__MD" + "_BRIDGE_TOKEN__"] || TOKEN_LITERAL;
+  var HAS_BRIDGE = (typeof window.MDNative !== "undefined") && (window.MDNative !== null) &&
+    (BRIDGE_TOKEN !== TOKEN_PLACEHOLDER);
+
+  var state = {
+    view: "home",
+    prevView: "home",
+    dir: DEFAULT_DIRECTORY,
+    deviceName: "Android",
+    version: APP_VERSION,
+    token: null,
+    poolId: null,
+    deviceId: null,
+    role: null,
+    poolName: null,
+    joinCode: null,
+    codeExp: 0,
+    devices: [],
+    loaded: false,
+    memberPending: false,
+    currentHostId: null,
+    lastHostId: null,
+    hostTitle: "",
+    codeHidden: false,
+    theme: "light",
+    busy: {},
+    nameTried: false,
+    confirmCb: null,
+    toastTimer: null
+  };
+
+  var el = {};
+
+  /* ---------------------------------------------------------------------
+   * small helpers
+   * ------------------------------------------------------------------- */
+  function $(id) { return document.getElementById(id); }
+
+  function esc(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (c) {
+      if (c === "&") return "&amp;";
+      if (c === "<") return "&lt;";
+      if (c === ">") return "&gt;";
+      if (c === '"') return "&quot;";
+      return "&#39;";
+    });
+  }
+
+  function nowMs() { return Date.now(); }
+
+  function lsGet(key) {
+    try { return localStorage.getItem(key) || null; } catch (e) { return null; }
+  }
+  function lsSet(key, value) {
+    try { if (value == null) localStorage.removeItem(key); else localStorage.setItem(key, String(value)); } catch (e) {}
+  }
+  function lsRemove(key) { try { localStorage.removeItem(key); } catch (e) {} }
+
+  function dlog(message) {
+    var text = String(message == null ? "" : message);
+    // Never log tokens, nonces or full host URLs: callers only pass ids/status.
+    try { console.log("[MultiDSH-page] " + text); } catch (e) {}
+    if (HAS_BRIDGE) safeCall("log", [BRIDGE_TOKEN, text]);
+  }
+
+  function normalizeDir(value) {
+    var url = String(value == null ? "" : value).trim();
+    if (!url) return "";
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    return url.replace(/\/+$/, "");
+  }
+
+  function isPoolIdLike(name) {
+    return !!name && /^pool_[0-9a-z]+$/i.test(String(name));
+  }
+
+  function poolDisplayName() {
+    var name = state.poolName;
+    if (name && !isPoolIdLike(name)) return String(name);
+    return FALLBACK_POOL_NAME;
+  }
+
+  function currentDeviceName() {
+    return state.deviceName || "Android";
+  }
+
+  function findDevice(id) {
+    for (var i = 0; i < state.devices.length; i++) {
+      if (state.devices[i].id === id) return state.devices[i];
+    }
+    return null;
+  }
+
+  /* ---------------------------------------------------------------------
+   * native bridge (token-first, safe)
+   * ------------------------------------------------------------------- */
+  function hasMethod(name) {
+    return HAS_BRIDGE && typeof window.MDNative[name] === "function";
+  }
+
+  function safeCall(name, args) {
+    if (!HAS_BRIDGE) return null;
+    try {
+      var fn = window.MDNative[name];
+      if (typeof fn !== "function") return null;
+      return fn.apply(window.MDNative, args);
+    } catch (e) {
+      try { console.log("[MultiDSH-page] bridge " + name + " call failed"); } catch (e2) {}
+      return null;
+    }
+  }
+
+  function nGetDirectory() { return safeCall("getDirectory", [BRIDGE_TOKEN]); }
+  function nSetDirectory(url) { safeCall("setDirectory", [BRIDGE_TOKEN, url]); }
+  function nGetDeviceName() { return safeCall("getDeviceName", [BRIDGE_TOKEN]); }
+  function nGetVersion() { return safeCall("getVersion", [BRIDGE_TOKEN]); }
+  function nCopy(text) { return safeCall("copy", [BRIDGE_TOKEN, String(text == null ? "" : text)]); }
+  function nOpenHost(url) { return safeCall("openHost", [BRIDGE_TOKEN, String(url == null ? "" : url)]); }
+  function nSetUiMode(mode, title) { safeCall("setUiMode", [BRIDGE_TOKEN, mode, String(title == null ? "" : title)]); }
+  function nSetTheme(theme) { safeCall("setTheme", [BRIDGE_TOKEN, theme === "dark" ? "dark" : "light"]); }
+  function nLoadToken() { return safeCall("loadToken", [BRIDGE_TOKEN]); }
+  function nSaveToken(value) { safeCall("saveToken", [BRIDGE_TOKEN, String(value == null ? "" : value)]); }
+  function nClearToken() { safeCall("clearToken", [BRIDGE_TOKEN]); }
+  function nCloseHost() { safeCall("closeHost", [BRIDGE_TOKEN]); }
+  function nHttp(method, url, headersJson, body) {
+    return safeCall("http", [BRIDGE_TOKEN, method, url, headersJson, body]);
+  }
+
+  /* ---------------------------------------------------------------------
+   * HTTP: same-origin fetch first, Java bridge as fallback
+   * ------------------------------------------------------------------- */
+  function api(method, path, body, extraHeaders) {
+    var dir = String(state.dir || "").replace(/\/+$/, "");
+    var url = dir + path;
+    var headers = { "accept": "application/json" };
+    var key;
+    if (extraHeaders) {
+      for (key in extraHeaders) {
+        if (Object.prototype.hasOwnProperty.call(extraHeaders, key)) headers[key] = extraHeaders[key];
+      }
+    }
+    if (state.token) headers["authorization"] = "Bearer " + state.token;
+
+    var payload = null;
+    if (body !== undefined && body !== null) {
+      headers["content-type"] = "application/json";
+      payload = JSON.stringify(body);
+    }
+
+    dlog("api: " + method + " " + String(path).split("?")[0]);
+
+    if (typeof window.fetch !== "function") {
+      return Promise.resolve().then(function () { return bridgeHttp(method, url, headers, payload); });
+    }
+    var opts = { method: method, headers: headers, cache: "no-store", credentials: "same-origin" };
+    if (payload !== null) opts.body = payload;
+    return window.fetch(url, opts).then(function (res) {
+      return res.text().then(function (text) { return parseResponse(res.status, text, false); });
+    }).catch(function () {
+      if (hasMethod("http")) return bridgeHttp(method, url, headers, payload);
+      throw new Error("无法连接 Directory");
+    });
+  }
+
+  function bridgeHttp(method, url, headers, payload) {
+    var raw = nHttp(method, url, JSON.stringify(headers || {}), payload == null ? null : payload);
+    if (raw == null) throw new Error("无法连接 Directory");
+    var parsed = null;
+    try { parsed = JSON.parse(String(raw)); } catch (e) { throw new Error("Directory 返回格式异常"); }
+    if (parsed && parsed.error) throw new Error(String(parsed.error));
+    var res = parseResponse(Number(parsed && parsed.status ? parsed.status : 0),
+      parsed && parsed.body != null ? String(parsed.body) : "", true);
+    return res;
+  }
+
+  function parseResponse(status, text, viaBridge) {
+    var data = null;
+    if (text) { try { data = JSON.parse(text); } catch (e) { data = null; } }
+    return {
+      status: Number(status) || 0,
+      ok: Number(status) >= 200 && Number(status) < 300,
+      data: data,
+      text: text || "",
+      viaBridge: !!viaBridge
+    };
+  }
+
+  function errorCode(res) {
+    return res && res.data && res.data.error && res.data.error.code ? String(res.data.error.code) : "";
+  }
+
+  function errorText(res) {
+    var code = errorCode(res);
+    var message = res && res.data && res.data.error && res.data.error.message ?
+      String(res.data.error.message) : "";
+    var map = {
+      create_key_invalid: "创建被拒绝：需要有效的创建密钥",
+      pool_code_invalid: "池码无效，请检查后重试",
+      pool_code_expired: "池码已过期，请向 owner 索取新池码",
+      device_revoked: "本机设备已被吊销，已退出该池",
+      device_pending: "等待 owner 审批",
+      host_not_active: "主机未激活或缺少配对信息",
+      host_not_found: "主机不存在或已离开该池",
+      unauthorized: "登录已失效，请重新加入池",
+      forbidden: "没有权限执行该操作",
+      rate_limited: "操作过于频繁，请稍后再试",
+      invalid_request: "请求参数不正确"
+    };
+    if (map[code]) return map[code];
+    if (message) return code ? code + "：" + message : message;
+    if (res && res.status) return "请求失败（HTTP " + res.status + "）";
+    return "请求失败";
+  }
+
+  /* ---------------------------------------------------------------------
+   * error boxes / toast / confirm dialog (page-rendered, no window.confirm)
+   * ------------------------------------------------------------------- */
+  function showErrorBox(id, message) {
+    var box = $(id);
+    if (!box) return;
+    var text = box.querySelector(".error-text");
+    if (text) text.textContent = String(message == null ? "" : message);
+    box.classList.remove("hidden");
+  }
+
+  function hideErrorBox(id) {
+    var box = $(id);
+    if (box) box.classList.add("hidden");
+  }
+
+  function toast(message) {
+    if (!el.toast) return;
+    el.toast.textContent = String(message == null ? "" : message);
+    el.toast.classList.remove("hidden");
+    if (state.toastTimer) clearTimeout(state.toastTimer);
+    state.toastTimer = setTimeout(function () { el.toast.classList.add("hidden"); }, 2600);
+  }
+
+  function askConfirm(opts) {
+    opts = opts || {};
+    el.confirmTitle.textContent = opts.title || "确认";
+    el.confirmMsg.textContent = opts.message || "";
+    el.confirmOk.textContent = opts.okText || "确定";
+    el.confirmOk.className = "btn " + (opts.danger === false ? "" : "danger");
+    state.confirmCb = typeof opts.onOk === "function" ? opts.onOk : null;
+    el.confirmModal.classList.remove("hidden");
+  }
+
+  function closeConfirm() {
+    el.confirmModal.classList.add("hidden");
+    state.confirmCb = null;
+  }
+
+  function runConfirm() {
+    var cb = state.confirmCb;
+    closeConfirm();
+    if (cb) {
+      try { cb(); } catch (e) { dlog("confirm callback failed"); }
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+   * theme
+   * ------------------------------------------------------------------- */
+  function applyTheme(theme) {
+    state.theme = theme === "dark" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", state.theme);
+    lsSet(LS.theme, state.theme);
+    nSetTheme(state.theme);
+    if (el.themeLight) el.themeLight.className = "btn " + (state.theme === "light" ? "active" : "ghost");
+    if (el.themeDark) el.themeDark.className = "btn " + (state.theme === "dark" ? "active" : "ghost");
+  }
+
+  /* ---------------------------------------------------------------------
+   * session persistence
+   * ------------------------------------------------------------------- */
+  function saveSession() {
+    lsSet(LS.dir, state.dir);
+    lsSet(LS.poolId, state.poolId);
+    if (HAS_BRIDGE) {
+      nSaveToken(state.token);
+      lsRemove(LS.token);
+    } else {
+      lsSet(LS.token, state.token);
+    }
+    lsSet(LS.deviceId, state.deviceId);
+    lsSet(LS.role, state.role);
+    lsSet(LS.poolName, state.poolName);
+    lsSet(LS.joinCode, state.joinCode);
+    lsSet(LS.codeExp, state.codeExp ? String(state.codeExp) : null);
+  }
+
+  function loadSessionFromStorage() {
+    state.poolId = lsGet(LS.poolId);
+    var legacyToken = lsGet(LS.token);
+    var nativeToken = HAS_BRIDGE ? nLoadToken() : null;
+    state.token = nativeToken || legacyToken;
+    if (HAS_BRIDGE && legacyToken) {
+      // Migrate the old plaintext WebView localStorage token into the
+      // Android Keystore-backed store, then remove the plaintext copy.
+      nSaveToken(legacyToken);
+      lsRemove(LS.token);
+    }
+    state.deviceId = lsGet(LS.deviceId);
+    state.role = lsGet(LS.role);
+    state.poolName = lsGet(LS.poolName);
+    state.joinCode = lsGet(LS.joinCode);
+    var exp = Number(lsGet(LS.codeExp) || 0);
+    state.codeExp = isFinite(exp) ? exp : 0;
+    state.lastHostId = lsGet(LS.lastHost);
+    if (!state.token || !state.poolId) {
+      state.token = null;
+      state.poolId = null;
+      state.role = null;
+    }
+  }
+
+  function clearSession() {
+    state.token = null;
+    state.poolId = null;
+    state.deviceId = null;
+    state.role = null;
+    state.poolName = null;
+    state.joinCode = null;
+    state.codeExp = 0;
+    state.devices = [];
+    state.loaded = false;
+    state.memberPending = false;
+    state.currentHostId = null;
+    state.lastHostId = null;
+    state.nameTried = false;
+    if (HAS_BRIDGE) nClearToken();
+    lsRemove(LS.poolId);
+    lsRemove(LS.token);
+    lsRemove(LS.deviceId);
+    lsRemove(LS.role);
+    lsRemove(LS.poolName);
+    lsRemove(LS.joinCode);
+    lsRemove(LS.codeExp);
+    lsRemove(LS.lastHost);
+  }
+
+  function inPool() { return !!(state.token && state.poolId); }
+
+  /* ---------------------------------------------------------------------
+   * views + native top bar
+   * ------------------------------------------------------------------- */
+  function setView(view) {
+    if (view !== state.view) state.prevView = state.view;
+    state.view = view;
+    el.homeView.classList.toggle("hidden", view !== "home");
+    el.poolView.classList.toggle("hidden", view !== "pool");
+    el.settingsView.classList.toggle("hidden", view !== "settings");
+    el.utilbar.classList.toggle("hidden", view === "settings");
+    if (view === "home") fillHome();
+    if (view === "pool") { renderPool(); loadDevices({ silent: !state.loaded }); }
+    if (view === "settings") fillSettings();
+    syncUiMode();
+    try { window.scrollTo(0, 0); } catch (e) {}
+  }
+
+  function syncUiMode() {
+    var mode = "home";
+    var title = "MultiDSH";
+    if (state.view === "settings") { mode = "settings"; title = "设置"; }
+    else if (state.view === "pool") { mode = "pool"; title = poolDisplayName(); }
+    nSetUiMode(mode, title);
+  }
+
+  function showHome() { setView("home"); }
+  function showPool() { setView("pool"); }
+  function openSettings() { setView("settings"); }
+  function backFromSettings() { setView(inPool() ? "pool" : "home"); }
+
+  /* called by the native back button if the shell forwards it */
+  function onNativeBack() {
+    if (state.view === "settings") { backFromSettings(); return true; }
+    if (state.currentHostId) {
+      state.currentHostId = null;
+      renderDevices();
+      syncUiMode();
+      toast("已返回池页面");
+      return true;
+    }
+    return false;
+  }
+
+  /* called by the shell when the host page cannot be opened.
+     The shell passes a single object: {code, description, host}. */
+  function onHostError(info, code, description) {
+    var host = "";
+    if (info && typeof info === "object") {
+      description = info.description;
+      code = info.code;
+      host = info.host || "";
+    }
+    var text = description ? String(description) : "主机页面加载失败";
+    if (host) text += "（" + String(host) + "）";
+    state.currentHostId = null;
+    if (inPool()) {
+      setView("pool");
+      showErrorBox("pool-error", "无法打开主机：" + text);
+    } else {
+      setView("home");
+      showErrorBox("home-error", "无法打开主机：" + text);
+    }
+    dlog("host error: code=" + (code == null ? "?" : code));
+    toast("无法打开主机");
+  }
+
+  /* exposed for the shell / debug hooks */
+  function closeHost() {
+    state.currentHostId = null;
+    if (state.view === "pool") {
+      renderDevices();
+      syncUiMode();
+      loadDevices({ silent: true });
+    }
+  }
+
+  /* the shell calls this after returning from a host page (preferred hook) */
+  function onHostClosed() { closeHost(); }
+
+  /* ---------------------------------------------------------------------
+   * home / settings fill
+   * ------------------------------------------------------------------- */
+  function fillHome() {
+    el.homeDir.value = state.dir || "";
+    el.homeDevice.value = state.deviceName || "";
+    if (!el.createName.value) el.createName.value = DEFAULT_POOL_NAME;
+    var linked = inPool();
+    el.currentPoolCard.classList.toggle("hidden", !linked);
+    if (linked) {
+      el.currentPoolName.textContent = poolDisplayName();
+      el.currentPoolMeta.textContent = (state.role === "owner" ? "所有者" : "成员") +
+        " · 已保存本机会话";
+    }
+  }
+
+  function fillSettings() {
+    el.settingsDir.value = state.dir || "";
+    el.settingsDevice.value = state.deviceName || "";
+    el.settingsVersion.textContent = "MultiDSH Android " + state.version;
+    el.settingsDirectory.textContent = state.dir || "-";
+    applyTheme(state.theme);
+  }
+
+  /* ---------------------------------------------------------------------
+   * health
+   * ------------------------------------------------------------------- */
+  function setNet(kind, text) {
+    el.netDot.className = "dot " + kind;
+    el.netText.textContent = text;
+  }
+
+  function checkHealth() {
+    setNet("wait", "连接检查中");
+    return api("GET", "/api/health").then(function (res) {
+      if (res.ok && res.data && res.data.ok !== false) {
+        setNet("ok", "连接正常");
+        el.healthHint.textContent = "✓ 连接正常 · protocol " + (res.data.protocol || PROTOCOL) +
+          (res.viaBridge ? " · Java bridge" : " · 同源 fetch");
+      } else {
+        setNet("err", "连接异常");
+        el.healthHint.textContent = "✗ 无法连接：" + errorText(res) + "（可在设置中修改 Directory 地址）";
+      }
+      return res;
+    }).catch(function (err) {
+      setNet("err", "无法连接");
+      var raw = err && err.message ? String(err.message) : "网络错误";
+      dlog("health failed: " + raw);
+      var friendly = /UnknownHost|Unable to resolve|Failed to connect|timed out|ConnectException|Network is unreachable|EHOSTUNREACH/i.test(raw)
+        ? "Directory 地址无法解析或连接超时"
+        : "网络错误";
+      el.healthHint.textContent = "✗ 无法连接：" + friendly +
+        "（检查地址/网络，可在设置中修改 Directory 地址）";
+      return null;
+    });
+  }
+
+  /* ---------------------------------------------------------------------
+   * create / join
+   * ------------------------------------------------------------------- */
+  function createPool() {
+    if (state.busy.create) return;
+    var poolName = String(el.createName.value || "").trim() || DEFAULT_POOL_NAME;
+    var createKey = String(el.createKey.value || "").trim();
+    var headers = {};
+    if (createKey) headers["x-multidsh-create-key"] = createKey;
+
+    state.busy.create = true;
+    el.btnCreate.disabled = true;
+    el.btnCreate.textContent = "创建中…";
+    hideErrorBox("home-error");
+    el.homeStatus.textContent = "正在创建池…";
+
+    api("POST", "/api/pools", {
+      name: poolName,
+      deviceName: currentDeviceName(),
+      platform: "android",
+      version: APP_VERSION
+    }, headers).then(function (res) {
+      if (!res.ok) throw res;
+      var data = res.data || {};
+      var pool = data.pool || {};
+      var device = data.device || {};
+      state.poolId = pool.id || data.poolId || null;
+      state.poolName = pool.name || poolName;
+      state.joinCode = pool.joinCode || data.joinCode || null;
+      state.codeExp = Number(pool.joinCodeExpiresAt || data.joinCodeExpiresAt || 0) || 0;
+      state.token = data.deviceToken || null;
+      state.deviceId = device.id || null;
+      state.role = "owner";
+      state.memberPending = false;
+      state.devices = [];
+      state.loaded = false;
+      state.currentHostId = null;
+      state.codeHidden = false;
+      saveSession();
+      el.homeStatus.textContent = "";
+      dlog("createPool: ok poolId=" + state.poolId + " role=owner");
+      showPool();
+      toast("池已创建，把池码发给其他设备");
+    }).catch(function (res) {
+      if (res && typeof res.status === "number") showErrorBox("home-error", errorText(res));
+      else showErrorBox("home-error", "创建失败：" + (res && res.message ? res.message : "网络错误"));
+      el.homeStatus.textContent = "";
+      dlog("createPool: failed status=" + (res && res.status ? res.status : "?"));
+    }).then(function () {
+      state.busy.create = false;
+      el.btnCreate.disabled = false;
+      el.btnCreate.textContent = "创建池（成为 owner）";
+    });
+  }
+
+  function joinPool() {
+    if (state.busy.join) return;
+    var code = String(el.joinCodeInput.value || "").trim().toUpperCase();
+    if (!/^[A-Z0-9]{8}$/.test(code)) {
+      showErrorBox("home-error", "请输入 8 位池码（字母和数字）");
+      return;
+    }
+
+    state.busy.join = true;
+    el.btnJoin.disabled = true;
+    el.btnJoin.textContent = "加入中…";
+    hideErrorBox("home-error");
+    el.homeStatus.textContent = "正在加入池…";
+
+    api("POST", "/api/pools/join", {
+      code: code,
+      kind: "client",
+      name: currentDeviceName(),
+      platform: "android",
+      version: APP_VERSION
+    }).then(function (res) {
+      if (!res.ok) throw res;
+      var data = res.data || {};
+      var device = data.device || {};
+      state.poolId = device.poolId || data.poolId || null;
+      state.token = data.deviceToken || null;
+      state.deviceId = device.id || null;
+      state.role = "member";
+      state.memberPending = true;
+      state.poolName = (data.pool && data.pool.name) || null;
+      state.joinCode = null;
+      state.codeExp = 0;
+      state.devices = [];
+      state.loaded = false;
+      state.currentHostId = null;
+      state.nameTried = false;
+      saveSession();
+      el.homeStatus.textContent = "";
+      dlog("joinPool: ok poolId=" + state.poolId + " status=" + (device.status || "pending"));
+      showPool();
+      fetchPoolNameIfNeeded();
+      toast("已加入，等待 owner 审批");
+    }).catch(function (res) {
+      if (res && typeof res.status === "number") showErrorBox("home-error", errorText(res));
+      else showErrorBox("home-error", "加入失败：" + (res && res.message ? res.message : "网络错误"));
+      el.homeStatus.textContent = "";
+      dlog("joinPool: failed status=" + (res && res.status ? res.status : "?"));
+    }).then(function () {
+      state.busy.join = false;
+      el.btnJoin.disabled = false;
+      el.btnJoin.textContent = "加入";
+    });
+  }
+
+  /* The join response now carries pool.name; no extra /api/pools/:id lookup. */
+  function fetchPoolNameIfNeeded() {
+    return null;
+  }
+
+  /* ---------------------------------------------------------------------
+   * pool rendering
+   * ------------------------------------------------------------------- */
+  function renderPool() {
+    if (!inPool()) { showHome(); return; }
+    var isOwner = state.role === "owner";
+    el.poolName.textContent = poolDisplayName();
+    el.poolMeta.textContent = (isOwner ? "所有者" : "成员") + " · 本机 " + currentDeviceName();
+    el.codeCard.classList.toggle("hidden", !isOwner);
+    el.pendingCard.classList.toggle("hidden", !isOwner);
+    el.memberCard.classList.toggle("hidden", isOwner);
+    if (isOwner) { renderCode(); renderPending(); }
+    renderMemberStatus();
+    renderMyDevice();
+    renderDevices();
+    hideErrorBox("pool-error");
+    syncUiMode();
+  }
+
+  function renderCode() {
+    if (!el.joinCodeDisplay) return;
+    var code = state.joinCode || "";
+    if (!code) el.joinCodeDisplay.textContent = "--------";
+    else el.joinCodeDisplay.textContent = state.codeHidden ? "••••••••" : code;
+    el.btnCodeToggle.textContent = state.codeHidden ? "显示" : "隐藏";
+    el.btnCodeCopy.disabled = !code;
+    el.btnCodeRotate.disabled = !code;
+    tickCountdown();
+  }
+
+  function tickCountdown() {
+    if (!el.codeExp) return;
+    if (!state.codeExp) { el.codeExp.textContent = ""; return; }
+    var left = state.codeExp - nowMs();
+    if (left <= 0) {
+      el.codeExp.textContent = "池码已过期，请点「轮换」生成新池码。";
+      return;
+    }
+    var total = Math.floor(left / 1000);
+    var h = Math.floor(total / 3600);
+    var m = Math.floor((total % 3600) / 60);
+    var s = total % 60;
+    el.codeExp.textContent = "有效期剩余 " + h + " 小时 " + m + " 分 " + s + " 秒";
+  }
+
+  function renderMemberStatus() {
+    if (state.role === "owner") { el.memberCard.classList.add("hidden"); return; }
+    el.memberCard.classList.remove("hidden");
+    if (state.memberPending) {
+      el.memberPill.className = "pill pending";
+      el.memberPill.textContent = "等待审批";
+      el.memberText.textContent = "已加入该池，等待 owner 批准；批准后设备列表会自动出现。";
+    } else {
+      el.memberPill.className = "pill active";
+      el.memberPill.textContent = "已通过";
+      el.memberText.textContent = "owner 已批准，可以打开池内的 host 设备。";
+    }
+  }
+
+  function renderPending() {
+    if (state.role !== "owner") {
+      el.pendingList.innerHTML = "";
+      el.pendingCount.textContent = "0";
+      return;
+    }
+    var pending = [];
+    var i;
+    for (i = 0; i < state.devices.length; i++) {
+      if (state.devices[i].status === "pending") pending.push(state.devices[i]);
+    }
+    el.pendingCount.textContent = String(pending.length);
+    if (!pending.length) {
+      el.pendingList.innerHTML = '<div class="empty">暂无待审批设备</div>';
+      return;
+    }
+    var html = "";
+    for (i = 0; i < pending.length; i++) {
+      var d = pending[i];
+      var busy = !!state.busy[d.id];
+      html += '<div class="device">';
+      html += '<div class="top"><div class="dev-main"><div class="name">' + esc(deviceName(d)) + '</div>';
+      html += '<div class="meta">' + esc(kindLabel(d.kind)) + " · " + esc(platformLabel(d.platform)) +
+        " · " + esc(onlineLabel(d)) + '</div></div><span class="pill pending">待审批</span></div>';
+      html += '<div class="acts">';
+      html += '<button class="btn small" type="button" data-act="approve" data-id="' + esc(d.id) + '"' +
+        (busy ? " disabled" : "") + ">" + (busy ? "处理中…" : "批准") + "</button>";
+      html += '<button class="btn ghost danger-ghost small" type="button" data-act="reject" data-id="' +
+        esc(d.id) + '"' + (busy ? " disabled" : "") + ">" + (busy ? "处理中…" : "拒绝") + "</button>";
+      html += "</div></div>";
+    }
+    el.pendingList.innerHTML = html;
+  }
+
+  function renderDevices() {
+    if (!el.deviceGroups) return;
+    if (!state.loaded) {
+      el.deviceGroups.innerHTML = '<div class="empty">加载中…</div>';
+      return;
+    }
+    var active = [];
+    var i;
+    for (i = 0; i < state.devices.length; i++) {
+      if (state.devices[i].status === "active") active.push(state.devices[i]);
+    }
+    if (!active.length) {
+      el.deviceGroups.innerHTML = state.memberPending ?
+        '<div class="empty">等待 owner 审批后显示设备</div>' : '<div class="empty">暂无设备</div>';
+      return;
+    }
+    var groups = [];
+    var byKey = {};
+    for (i = 0; i < active.length; i++) {
+      var d = active[i];
+      var key = d.machineId || ("solo:" + d.id);
+      var group = byKey[key];
+      if (!group) {
+        group = { key: key, name: d.machineName || "", devices: [] };
+        byKey[key] = group;
+        groups.push(group);
+      }
+      if (!group.name && d.machineName) group.name = d.machineName;
+      group.devices.push(d);
+    }
+    for (i = 0; i < groups.length; i++) {
+      if (!groups[i].name) groups[i].name = deviceName(groups[i].devices[0]);
+    }
+    groups.sort(function (a, b) {
+      var al = groupIsLocal(a) ? 0 : 1;
+      var bl = groupIsLocal(b) ? 0 : 1;
+      if (al !== bl) return al - bl;
+      return String(a.name).localeCompare(String(b.name));
+    });
+    var html = "";
+    for (i = 0; i < groups.length; i++) html += renderGroup(groups[i]);
+    el.deviceGroups.innerHTML = html;
+  }
+
+  function groupIsLocal(group) {
+    for (var i = 0; i < group.devices.length; i++) {
+      if (group.devices[i].id === state.deviceId) return true;
+    }
+    return false;
+  }
+
+  function renderGroup(group) {
+    var html = '<div class="group"><div class="group-head"><span class="group-name">' +
+      esc(group.name) + '</span><span class="muted">' + group.devices.length + " 台</span></div>";
+    for (var i = 0; i < group.devices.length; i++) html += renderDevice(group.devices[i]);
+    html += "</div>";
+    return html;
+  }
+
+  function renderDevice(d) {
+    var isSelf = d.id === state.deviceId;
+    var isCurrent = d.id === state.currentHostId;
+    var isLast = !isCurrent && d.id === state.lastHostId;
+    var busy = !!state.busy[d.id];
+    var html = '<div class="device' + (isCurrent ? " current" : "") + '">';
+    html += '<div class="top"><div class="dev-main"><div class="name">' + esc(deviceName(d));
+    if (isSelf) html += ' <span class="badge self">本机</span>';
+    if (isCurrent) html += ' <span class="pill current">当前</span>';
+    else if (isLast) html += ' <span class="pill">上次打开</span>';
+    html += '</div><div class="meta">' + esc(kindLabel(d.kind)) + " · " + esc(platformLabel(d.platform)) +
+      " · " + esc(onlineLabel(d)) + '</div></div>';
+    html += '<span class="pill ' + statusClass(d.status) + '">' + esc(statusLabel(d.status)) + "</span></div>";
+    html += '<div class="acts">';
+    if (d.kind === "host" && d.status === "active") {
+      html += '<button class="btn small" type="button" data-act="pair" data-id="' + esc(d.id) + '"' +
+        (busy ? " disabled" : "") + ">" + (isCurrent ? "重新打开" : "打开主机") + "</button>";
+    }
+    if (state.role === "owner" && !isSelf && d.status !== "revoked") {
+      html += '<button class="btn ghost danger-ghost small" type="button" data-act="revoke" data-id="' +
+        esc(d.id) + '"' + (busy ? " disabled" : "") + ">" + (busy ? "处理中…" : "吊销") + "</button>";
+    }
+    html += "</div></div>";
+    return html;
+  }
+
+  function renderMyDevice() {
+    if (!el.mydevName) return;
+    if (document.activeElement !== el.mydevName) el.mydevName.value = state.deviceName || "";
+    var mine = findDevice(state.deviceId);
+    if (mine) el.mydevState.textContent = statusLabel(mine.status) + " · " + onlineLabel(mine);
+    else el.mydevState.textContent = state.memberPending ? "等待审批" : "";
+  }
+
+  /* ---------------------------------------------------------------------
+   * localization helpers
+   * ------------------------------------------------------------------- */
+  function deviceName(d) {
+    return (d && (d.name || d.machineName)) || "设备";
+  }
+
+  function kindLabel(kind) {
+    if (kind === "host") return "主机";
+    if (kind === "client") return "客户端";
+    return kind ? String(kind) : "设备";
+  }
+
+  function statusLabel(status) {
+    if (status === "active") return "已通过";
+    if (status === "pending") return "待审批";
+    if (status === "revoked") return "已吊销";
+    return status ? String(status) : "未知";
+  }
+
+  function statusClass(status) {
+    if (status === "active") return "active";
+    if (status === "pending") return "pending";
+    if (status === "revoked") return "revoked";
+    return "";
+  }
+
+  function platformLabel(platform) {
+    var map = { win32: "Windows", win: "Windows", linux: "Linux", darwin: "macOS", android: "Android", worker: "Worker" };
+    return map[platform] || (platform ? String(platform) : "未知平台");
+  }
+
+  function onlineLabel(d) {
+    if (d && d.lastSeenAt && nowMs() - Number(d.lastSeenAt) <= ONLINE_WINDOW_MS) return "在线";
+    return "离线";
+  }
+
+  /* ---------------------------------------------------------------------
+   * device actions
+   * ------------------------------------------------------------------- */
+  function loadDevices(opts) {
+    opts = opts || {};
+    if (!inPool()) return Promise.resolve(null);
+    if (!opts.silent) {
+      state.loaded = false;
+      renderDevices();
+    }
+    var query = state.role === "owner" ? "?includePending=1" : "";
+    return api("GET", "/api/pools/" + encodeURIComponent(state.poolId) + "/devices" + query)
+      .then(function (res) {
+        state.loaded = true;
+        if (res.status === 401 || (res.status === 403 && errorCode(res) === "device_revoked")) {
+          handleSessionLost(errorText(res));
+          return null;
+        }
+        if (res.status === 403 && errorCode(res) === "device_pending") {
+          state.memberPending = true;
+          renderMemberStatus();
+          renderDevices();
+          return null;
+        }
+        if (!res.ok) {
+          showErrorBox("pool-error", errorText(res));
+          renderDevices();
+          return null;
+        }
+        hideErrorBox("pool-error");
+        state.memberPending = false;
+        state.devices = (res.data && res.data.devices) || [];
+        renderMemberStatus();
+        renderPending();
+        renderDevices();
+        renderMyDevice();
+        if (state.role === "member") fetchPoolNameIfNeeded();
+        return res;
+      })
+      .catch(function (err) {
+        state.loaded = true;
+        renderDevices();
+        if (!opts.silent) {
+          showErrorBox("pool-error", "加载设备失败：" + (err && err.message ? err.message : "网络错误"));
+        }
+        return null;
+      });
+  }
+
+  function handleSessionLost(message) {
+    dlog("session lost, returning home");
+    clearSession();
+    setView("home");
+    showErrorBox("home-error", message || "登录已失效，请重新加入池");
+    toast("已退出池，请重新加入");
+  }
+
+  function approveDevice(id) {
+    if (!id || state.busy[id]) return;
+    state.busy[id] = true;
+    renderPending();
+    api("POST", "/api/pools/" + encodeURIComponent(state.poolId) + "/devices/" +
+      encodeURIComponent(id) + "/approve").then(function (res) {
+      if (!res.ok) {
+        showErrorBox("pool-error", "批准失败：" + errorText(res));
+        return null;
+      }
+      dlog("approve: ok id=" + id);
+      toast("已批准");
+      return loadDevices({ silent: true });
+    }).catch(function (err) {
+      showErrorBox("pool-error", "批准失败：" + (err && err.message ? err.message : "网络错误"));
+    }).then(function () {
+      delete state.busy[id];
+      renderPending();
+      renderDevices();
+    });
+  }
+
+  function revokeDevice(id, message) {
+    if (!id || state.busy[id]) return;
+    askConfirm({
+      title: "吊销设备",
+      message: message || "吊销后该设备将无法继续使用此池，需要重新加入。",
+      okText: "吊销",
+      onOk: function () { doRevoke(id); }
+    });
+  }
+
+  function doRevoke(id) {
+    state.busy[id] = true;
+    renderPending();
+    renderDevices();
+    api("POST", "/api/pools/" + encodeURIComponent(state.poolId) + "/devices/" +
+      encodeURIComponent(id) + "/revoke").then(function (res) {
+      if (!res.ok) {
+        showErrorBox("pool-error", "吊销失败：" + errorText(res));
+        return null;
+      }
+      dlog("revoke: ok id=" + id);
+      toast("已吊销");
+      return loadDevices({ silent: true });
+    }).catch(function (err) {
+      showErrorBox("pool-error", "吊销失败：" + (err && err.message ? err.message : "网络错误"));
+    }).then(function () {
+      delete state.busy[id];
+      renderPending();
+      renderDevices();
+    });
+  }
+
+  function pair(hostId) {
+    if (!hostId || state.busy[hostId]) return;
+    var host = findDevice(hostId);
+    state.busy[hostId] = true;
+    renderDevices();
+    api("POST", "/api/pools/" + encodeURIComponent(state.poolId) + "/pair", { hostId: hostId })
+      .then(function (res) {
+        if (!res.ok) {
+          showErrorBox("pool-error", "打开主机失败：" + errorText(res));
+          return null;
+        }
+        var url = res.data && res.data.url ? String(res.data.url) : "";
+        if (!url) {
+          showErrorBox("pool-error", "打开主机失败：Directory 未返回配对地址");
+          return null;
+        }
+        state.currentHostId = hostId;
+        state.lastHostId = hostId;
+        lsSet(LS.lastHost, hostId);
+        state.hostTitle = host ? (host.machineName || host.name || "主机") : "主机";
+        renderDevices();
+        dlog("pair: ok hostId=" + hostId + " online=" + (res.data.online ? "true" : "false"));
+        nSetUiMode("host", state.hostTitle);
+        if (hasMethod("openHost")) nOpenHost(url);
+        else {
+          try { window.location.href = url; } catch (e) { dlog("pair: navigation failed"); }
+        }
+        return null;
+      })
+      .catch(function (err) {
+        showErrorBox("pool-error", "打开主机失败：" + (err && err.message ? err.message : "网络错误"));
+      })
+      .then(function () {
+        delete state.busy[hostId];
+        renderDevices();
+      });
+  }
+
+  function copyCode() {
+    if (!state.joinCode) { toast("暂无池码"); return; }
+    var code = state.joinCode;
+    if (hasMethod("copy")) {
+      nCopy(code);
+      toast("池码已复制");
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(function () {
+        toast("池码已复制");
+      }, function () {
+        toast("复制失败，请手动复制");
+      });
+      return;
+    }
+    toast("当前环境不支持复制，请手动记下池码");
+  }
+
+  function toggleCode() {
+    state.codeHidden = !state.codeHidden;
+    lsSet(LS.codeHidden, state.codeHidden ? "1" : "0");
+    renderCode();
+  }
+
+  function rotateCode() {
+    askConfirm({
+      title: "轮换池码",
+      message: "轮换后旧池码立即失效，仍在用旧码加入的设备将无法加入。",
+      okText: "轮换",
+      onOk: function () {
+        api("POST", "/api/pools/" + encodeURIComponent(state.poolId) + "/join-code/rotate")
+          .then(function (res) {
+            if (!res.ok) {
+              showErrorBox("pool-error", "轮换失败：" + errorText(res));
+              return;
+            }
+            state.joinCode = res.data && res.data.joinCode ? String(res.data.joinCode) : null;
+            state.codeExp = Number(res.data && res.data.joinCodeExpiresAt || 0) || 0;
+            state.codeHidden = false;
+            saveSession();
+            renderCode();
+            toast("已生成新池码");
+          })
+          .catch(function (err) {
+            showErrorBox("pool-error", "轮换失败：" + (err && err.message ? err.message : "网络错误"));
+          });
+      }
+    });
+  }
+
+  function leavePool() {
+    askConfirm({
+      title: "退出池",
+      message: "退出后本机 token 会从本机清除，需要重新用池码加入。确定退出？",
+      okText: "退出",
+      onOk: function () {
+        clearSession();
+        setView("home");
+        toast("已退出池");
+      }
+    });
+  }
+
+  function renameSelf() {
+    var name = String(el.mydevName.value || "").trim();
+    if (!name) { toast("设备名不能为空"); return; }
+    if (name === state.deviceName) { toast("设备名未变化"); return; }
+    state.deviceName = name;
+    lsSet(LS.deviceName, name);
+    heartbeat().then(function (res) {
+      if (res && res.ok) {
+        toast("已更新设备名");
+        renderMyDevice();
+        loadDevices({ silent: true });
+      } else if (res && res.status) {
+        showErrorBox("pool-error", "改名失败：" + errorText(res));
+      }
+    });
+  }
+
+  function refreshDevices() {
+    if (state.busy.refresh) return;
+    state.busy.refresh = true;
+    el.btnRefresh.disabled = true;
+    el.btnRefresh.textContent = "刷新中…";
+    loadDevices({ silent: false }).then(function () {
+      delete state.busy.refresh;
+      el.btnRefresh.disabled = false;
+      el.btnRefresh.textContent = "刷新";
+    });
+  }
+
+  /* ---------------------------------------------------------------------
+   * heartbeat
+   * ------------------------------------------------------------------- */
+  function heartbeat() {
+    if (!inPool()) return Promise.resolve(null);
+    return api("POST", "/api/heartbeat", {
+      version: APP_VERSION,
+      platform: "android",
+      name: currentDeviceName()
+    }).then(function (res) {
+      if (res.status === 401 || (res.status === 403 && errorCode(res) === "device_revoked")) {
+        handleSessionLost(errorText(res));
+        return null;
+      }
+      return res;
+    }).catch(function () { return null; });
+  }
+
+  /* ---------------------------------------------------------------------
+   * settings actions
+   * ------------------------------------------------------------------- */
+  function saveDirectory(value) {
+    var url = normalizeDir(value);
+    if (!url) { toast("Directory 地址不能为空"); return; }
+    if (inPool() && url !== state.dir) {
+      askConfirm({
+        title: "切换 Directory",
+        message: "当前设备 token 属于旧 Directory。切换后需要退出当前池并重新加入，是否继续？",
+        okText: "切换并退出",
+        onOk: function () {
+          clearSession();
+          applyDirectory(url);
+        }
+      });
+      return;
+    }
+    applyDirectory(url);
+  }
+
+  function applyDirectory(url) {
+    state.dir = url;
+    lsSet(LS.dir, url);
+    fillHome();
+    fillSettings();
+    if (hasMethod("setDirectory")) {
+      nSetDirectory(url);
+      dlog("setDirectory: ok");
+      toast("已保存，正在重新加载");
+    } else {
+      toast("已保存（无原生壳，需重新加载页面生效）");
+    }
+    checkHealth();
+  }
+
+  function saveDeviceName(value, notify) {
+    var name = String(value || "").trim();
+    if (!name) { toast("设备名不能为空"); return; }
+    state.deviceName = name;
+    lsSet(LS.deviceName, name);
+    fillHome();
+    fillSettings();
+    if (notify) toast("已保存");
+    if (inPool()) heartbeat();
+  }
+
+  function clearLocalData() {
+    askConfirm({
+      title: "清除本地数据",
+      message: "将退出当前池，并清除本机保存的设备名、主题与池码。Directory 地址会保留。",
+      okText: "清除",
+      onOk: function () {
+        clearSession();
+        lsRemove(LS.deviceName);
+        lsRemove(LS.theme);
+        lsRemove(LS.codeHidden);
+        lsRemove(LS.lastHost);
+        state.deviceName = HAS_BRIDGE ? (nGetDeviceName() || "Android") : "Android";
+        state.codeHidden = false;
+        applyTheme("light");
+        setView("home");
+        toast("本地数据已清除");
+      }
+    });
+  }
+
+  /* ---------------------------------------------------------------------
+   * events
+   * ------------------------------------------------------------------- */
+  function actionFromEvent(ev) {
+    var node = ev.target;
+    while (node && node !== document) {
+      if (node.getAttribute && node.getAttribute("data-act")) return node;
+      node = node.parentNode;
+    }
+    return null;
+  }
+
+  function bindEvents() {
+    el.btnSettings.addEventListener("click", openSettings);
+    el.homeSaveDir.addEventListener("click", function () { saveDirectory(el.homeDir.value); });
+    el.homeDir.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.keyCode === 13) { saveDirectory(el.homeDir.value); }
+    });
+    el.homeDevice.addEventListener("change", function () { saveDeviceName(el.homeDevice.value, false); });
+    el.btnEnterPool.addEventListener("click", showPool);
+    el.btnCreate.addEventListener("click", createPool);
+    el.btnJoin.addEventListener("click", joinPool);
+    el.joinCodeInput.addEventListener("input", function () {
+      this.value = String(this.value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+    });
+    el.joinCodeInput.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.keyCode === 13) joinPool();
+    });
+    el.btnPoolSettings.addEventListener("click", openSettings);
+    el.btnLeave.addEventListener("click", leavePool);
+    el.btnRetryCheck.addEventListener("click", function () {
+      toast("正在检查…");
+      loadDevices({ silent: false });
+    });
+    el.btnCodeCopy.addEventListener("click", copyCode);
+    el.btnCodeToggle.addEventListener("click", toggleCode);
+    el.btnCodeRotate.addEventListener("click", rotateCode);
+    el.btnRename.addEventListener("click", renameSelf);
+    el.mydevName.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.keyCode === 13) renameSelf();
+    });
+    el.btnRefresh.addEventListener("click", refreshDevices);
+
+    el.settingsBack.addEventListener("click", backFromSettings);
+    el.settingsSaveDir.addEventListener("click", function () { saveDirectory(el.settingsDir.value); });
+    el.settingsDir.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.keyCode === 13) saveDirectory(el.settingsDir.value);
+    });
+    el.settingsSaveDevice.addEventListener("click", function () {
+      saveDeviceName(el.settingsDevice.value, true);
+    });
+    el.settingsDevice.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.keyCode === 13) saveDeviceName(el.settingsDevice.value, true);
+    });
+    el.themeLight.addEventListener("click", function () { applyTheme("light"); });
+    el.themeDark.addEventListener("click", function () { applyTheme("dark"); });
+    el.btnClearData.addEventListener("click", clearLocalData);
+
+    el.pendingList.addEventListener("click", function (ev) {
+      var btn = actionFromEvent(ev);
+      if (!btn) return;
+      var act = btn.getAttribute("data-act");
+      var id = btn.getAttribute("data-id");
+      if (act === "approve") approveDevice(id);
+      else if (act === "reject") revokeDevice(id, "拒绝该设备加入？拒绝后它将无法使用此池。");
+    });
+    el.deviceGroups.addEventListener("click", function (ev) {
+      var btn = actionFromEvent(ev);
+      if (!btn) return;
+      var act = btn.getAttribute("data-act");
+      var id = btn.getAttribute("data-id");
+      if (act === "pair") pair(id);
+      else if (act === "revoke") revokeDevice(id);
+    });
+
+    document.addEventListener("click", function (ev) {
+      var node = ev.target;
+      while (node && node !== document.body) {
+        if (node.getAttribute && node.getAttribute("data-close")) {
+          hideErrorBox(node.getAttribute("data-close"));
+          return;
+        }
+        node = node.parentNode;
+      }
+    });
+
+    el.confirmOk.addEventListener("click", runConfirm);
+    el.confirmCancel.addEventListener("click", closeConfirm);
+    el.confirmModal.addEventListener("click", function (ev) {
+      if (ev.target && ev.target.getAttribute && ev.target.getAttribute("data-confirm") === "cancel") closeConfirm();
+    });
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("online", onNetworkOnline);
+    window.addEventListener("offline", onNetworkOffline);
+    document.addEventListener("focusin", onFocusIn);
+    window.addEventListener("error", function () { dlog("page: uncaught error"); });
+  }
+
+  function onVisibilityChange() {
+    if (!document.hidden && state.view === "pool" && inPool()) loadDevices({ silent: true });
+  }
+
+  function onNetworkOnline() {
+    setNet("wait", "网络已恢复");
+    checkHealth();
+    if (inPool()) loadDevices({ silent: true });
+  }
+
+  function onNetworkOffline() {
+    setNet("err", "网络已断开");
+  }
+
+  function onFocusIn(ev) {
+    var target = ev && ev.target;
+    if (!target || !target.tagName) return;
+    if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") return;
+    // adjustResize shrinks the WebView when the keyboard opens; make sure the
+    // focused field (and its action button) is not hidden behind the keyboard.
+    setTimeout(function () {
+      try {
+        target.scrollIntoView({ block: "center", behavior: "smooth" });
+      } catch (e) {
+        try { target.scrollIntoView(); } catch (e2) {}
+      }
+    }, 260);
+  }
+
+  function onPageShow(ev) {
+    if (ev && ev.persisted) {
+      state.currentHostId = null;
+      if (state.view === "pool") { renderDevices(); syncUiMode(); }
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+   * init
+   * ------------------------------------------------------------------- */
+  function init() {
+    state.theme = lsGet(LS.theme) === "dark" ? "dark" : "light";
+    state.codeHidden = lsGet(LS.codeHidden) === "1";
+
+    if (HAS_BRIDGE) {
+      var dirFromShell = nGetDirectory();
+      if (dirFromShell) state.dir = normalizeDir(String(dirFromShell));
+      var shellName = nGetDeviceName();
+      var savedName = lsGet(LS.deviceName);
+      state.deviceName = savedName || (shellName ? String(shellName) : "Android");
+      var shellVersion = nGetVersion();
+      if (shellVersion) state.version = String(shellVersion);
+    } else {
+      state.dir = normalizeDir(lsGet(LS.dir) || DEFAULT_DIRECTORY);
+      state.deviceName = lsGet(LS.deviceName) || "Android";
+    }
+    if (!state.dir) state.dir = DEFAULT_DIRECTORY;
+    if (!state.deviceName) state.deviceName = "Android";
+
+    // With the native shell the top bar already provides 设置/返回 buttons;
+    // hide the duplicated page-level controls (browser fallback keeps them).
+    if (HAS_BRIDGE) {
+      if (el.btnSettings) el.btnSettings.classList.add("hidden");
+      if (el.btnPoolSettings) el.btnPoolSettings.classList.add("hidden");
+      if (el.settingsBack) el.settingsBack.classList.add("hidden");
+    }
+
+    loadSessionFromStorage();
+    applyTheme(state.theme);
+    bindEvents();
+    fillHome();
+    fillSettings();
+
+    setInterval(tickCountdown, 1000);
+    setInterval(function () {
+      if (!document.hidden && state.view === "pool" && inPool()) loadDevices({ silent: true });
+    }, POLL_MS);
+    setInterval(function () {
+      if (!document.hidden && inPool()) heartbeat();
+    }, HEARTBEAT_MS);
+
+    if (inPool()) {
+      setView("pool");
+      if (state.role === "member") fetchPoolNameIfNeeded();
+    } else {
+      setView("home");
+    }
+    heartbeat();
+    checkHealth();
+    dlog("init: view=" + state.view + " bridge=" + (HAS_BRIDGE ? "yes" : "no") + " version=" + APP_VERSION);
+
+    /* debug / automated hook (kept from the previous proto) */
+    window.MDApp = {
+      version: APP_VERSION,
+      state: state,
+      api: api,
+      checkHealth: checkHealth,
+      createPool: createPool,
+      joinPool: joinPool,
+      loadDevices: loadDevices,
+      pair: pair,
+      approve: approveDevice,
+      showHome: showHome,
+      openSettings: openSettings,
+      closeHost: closeHost,
+      onHostClosed: onHostClosed,
+      onHostError: onHostError,
+      onNativeBack: onNativeBack,
+      setTheme: applyTheme,
+      setDirectory: function (url) {
+        var clean = normalizeDir(url);
+        if (!clean) return false;
+        state.dir = clean;
+        lsSet(LS.dir, clean);
+        nSetDirectory(clean);
+        return true;
+      },
+      clearLocalData: clearLocalData
+    };
+    /* convenient aliases a native shell may evaluate */
+    window.onNativeBack = onNativeBack;
+    window.onHostError = onHostError;
+    window.onHostClosed = onHostClosed;
+  }
+
+  /* element lookup (the script runs at the end of <body>, so DOM is parsed) */
+  el = {
+    utilbar: $("utilbar"),
+    netDot: $("net-dot"),
+    netText: $("net-text"),
+    btnSettings: $("btn-settings"),
+    homeView: $("home-view"),
+    poolView: $("pool-view"),
+    settingsView: $("settings-view"),
+    homeDir: $("home-dir"),
+    homeSaveDir: $("home-save-dir"),
+    healthHint: $("health-hint"),
+    homeDevice: $("home-device"),
+    currentPoolCard: $("current-pool-card"),
+    currentPoolName: $("current-pool-name"),
+    currentPoolMeta: $("current-pool-meta"),
+    btnEnterPool: $("btn-enter-pool"),
+    createName: $("home-create-name"),
+    createKey: $("home-create-key"),
+    btnCreate: $("btn-create"),
+    joinCodeInput: $("join-code"),
+    btnJoin: $("btn-join"),
+    homeStatus: $("home-status"),
+    poolName: $("pool-name"),
+    poolMeta: $("pool-meta"),
+    btnPoolSettings: $("btn-pool-settings"),
+    btnLeave: $("btn-leave"),
+    memberCard: $("member-status-card"),
+    memberPill: $("member-status-pill"),
+    memberText: $("member-status-text"),
+    btnRetryCheck: $("btn-retry-check"),
+    codeCard: $("code-card"),
+    joinCodeDisplay: $("join-code-display"),
+    btnCodeCopy: $("btn-code-copy"),
+    btnCodeToggle: $("btn-code-toggle"),
+    btnCodeRotate: $("btn-code-rotate"),
+    codeExp: $("code-exp"),
+    pendingCard: $("pending-card"),
+    pendingCount: $("pending-count"),
+    pendingList: $("pending-list"),
+    mydevName: $("mydev-name"),
+    mydevState: $("mydev-state"),
+    btnRename: $("btn-rename"),
+    btnRefresh: $("btn-refresh"),
+    deviceGroups: $("device-groups"),
+    settingsBack: $("settings-back"),
+    settingsDir: $("settings-dir"),
+    settingsSaveDir: $("settings-save-dir"),
+    settingsDevice: $("settings-device"),
+    settingsSaveDevice: $("settings-save-device"),
+    themeLight: $("theme-light"),
+    themeDark: $("theme-dark"),
+    settingsVersion: $("settings-version"),
+    settingsDirectory: $("settings-directory"),
+    btnClearData: $("btn-clear-data"),
+    confirmModal: $("confirm-modal"),
+    confirmTitle: $("confirm-title"),
+    confirmMsg: $("confirm-msg"),
+    confirmOk: $("confirm-ok"),
+    confirmCancel: $("confirm-cancel"),
+    toast: $("toast")
+  };
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+</script>
+</body>
+</html>

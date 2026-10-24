@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- White adaptive-icon background; the black whale glyph is the foreground. -->
+    <color name="ic_launcher_background">#FFFFFFFF</color>
+</resources>

@@ -1,0 +1,14 @@
+{
+  "name": "multidsh",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "再三求索（MultiDSH）— a multi-host client suite for DeepSeek Harness",
+  "bin": {
+    "multidsh": "bin/multidsh.mjs"
+  },
+  "scripts": {
+    "e2e": "node scripts/e2e.mjs",
+    "test": "node scripts/run-tests.mjs"
+  }
+}

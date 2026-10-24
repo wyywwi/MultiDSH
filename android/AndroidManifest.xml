@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.multidsh.app"
+    android:versionCode="2"
+    android:versionName="0.2.0">
+
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Only explicitly handled user links (web, mail, dial) may leave the app. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tel" />
+        </intent>
+    </queries>
+
+    <!--
+        Network policy: HTTPS-only by default. Cleartext is allowed only for
+        localhost / 127.0.0.1 / 10.0.2.2 (see res/xml/network_security_config.xml)
+        for local Directory and emulator host development.
+
+        This manifest is NOT debuggable on purpose. Debug-only surfaces (the
+        debug JS injection smoke hook and WebView remote debugging) are gated on
+        ApplicationInfo.FLAG_DEBUGGABLE, so they stay off in the shipped APK.
+        The debug keystore signature is only about sideloading; it does not make
+        the app debuggable. For emulator smoke tests build with DEBUG=1: build.sh
+        then links a temporary manifest copy that adds android:debuggable and
+        produces a separate *-debug.apk.
+    -->
+    <application
+        android:label="MultiDSH"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="false"
+        android:hardwareAccelerated="true"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

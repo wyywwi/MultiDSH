@@ -1,0 +1,43 @@
+# MultiDSH Linux host sidecar (systemd unit template)
+#
+# 用途：在没有桌面的 Linux 服务器上常驻 MultiDSH host（后台 CLI），
+#      由另一台设备上的 MultiDSH 桌面/Android 客户端操控。
+# 前置：已经用 init 完成入池，并生成 host.json（见 docs/LINUX-HOST.md）。
+# `multidsh init` 默认写到 ~/.multidsh/instances/<name>/host.json；
+# 同一台机器多个 host（不同 DSH 版本/插件）时，每个 profile 复制一份本模板、
+# 改成 multidsh-host-<name>.service，并让 <HOST_JSON>/<LOG_DIR> 指向各自路径。
+#
+# 安装（需要 root/sudo）：
+#   sudo cp multidsh/scripts/multidsh-host.service.example /etc/systemd/system/multidsh-host.service
+#   sudoedit /etc/systemd/system/multidsh-host.service   # 替换 <USER> / <REPO> / node 路径
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now multidsh-host
+#   systemctl status multidsh-host --no-pager
+#   journalctl -u multidsh-host -f
+#
+# 无 sudo 时可改用用户级单元：systemctl --user enable --now multidsh-host
+# （把文件放到 ~/.config/systemd/user/；若希望注销后仍运行，需要管理员执行
+#   loginctl enable-linger <USER>，没有 sudo 时改用文档里的 setsid nohup 方式）。
+
+[Unit]
+Description=MultiDSH Linux host sidecar
+Documentation=https://github.com/your-org/multidsh (取实际文档地址)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=<USER>
+WorkingDirectory=<REPO>
+# 指向 init 生成的 host.json；其中包含 poolId / deviceToken / dsh 路径
+ExecStart=<NODE_BIN> <REPO>/packages/host/bin.js run --config <HOST_JSON>
+Restart=always
+RestartSec=3
+# host 会拉起 dsh web 子进程；停止单元时一并结束整组进程
+KillMode=control-group
+# host.json 里若使用相对路径，确保工作目录（WorkingDirectory）正确
+StandardOutput=append:<LOG_DIR>/host.log
+StandardError=append:<LOG_DIR>/host.err.log
+
+[Install]
+WantedBy=multi-user.target

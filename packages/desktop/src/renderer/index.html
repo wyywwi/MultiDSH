@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:;"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>MultiDSH</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <aside id="sidebar" aria-label="MultiDSH 设备面板">
+        <header class="app-header">
+          <div class="brand">
+            <div class="brand-mark" aria-hidden="true"><img class="brand-glyph brand-glyph-dark" src="brand-dark.svg" alt="" /><img class="brand-glyph brand-glyph-light" src="brand-light.svg" alt="" /></div>
+            <div class="brand-text">
+              <h1>MultiDSH</h1>
+              <p id="pool-name" class="brand-sub">未加入池</p>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button
+              id="sidebar-collapse-btn"
+              class="icon-btn"
+              type="button"
+              title="收起侧边栏"
+              aria-label="收起侧边栏"
+            >
+              <span aria-hidden="true">«</span>
+            </button>
+            <button
+              id="refresh-btn"
+              class="icon-btn"
+              type="button"
+              title="刷新设备列表"
+              aria-label="刷新设备列表"
+            >
+              <span class="refresh-glyph" aria-hidden="true">⟳</span>
+            </button>
+            <button
+              id="settings-btn"
+              class="icon-btn"
+              type="button"
+              title="设置"
+              aria-label="设置"
+            >
+              <span aria-hidden="true">⚙</span>
+            </button>
+          </div>
+        </header>
+
+        <section id="settings-panel" class="settings-panel" hidden>
+          <div class="settings-head">
+            <h3>设置</h3>
+            <button
+              id="settings-close-btn"
+              class="icon-btn icon-btn-sm"
+              type="button"
+              aria-label="关闭设置"
+            >
+              <span aria-hidden="true">✕</span>
+            </button>
+          </div>
+          <form id="directory-form" class="settings-form">
+            <label class="field-label" for="directory-input">Directory 地址</label>
+            <input
+              id="directory-input"
+              class="text-input"
+              type="text"
+              inputmode="url"
+              placeholder="http://127.0.0.1:8787"
+              spellcheck="false"
+              autocomplete="off"
+            />
+            <p class="hint">所有请求由主进程发起。切换地址会断开当前池，需要重新创建或加入。</p>
+            <button id="directory-save-btn" class="btn btn-secondary btn-sm" type="submit">
+              保存地址
+            </button>
+          </form>
+          <div class="settings-section">
+            <span class="field-label" id="theme-label">外观</span>
+            <div class="theme-switch" role="group" aria-labelledby="theme-label">
+              <button
+                id="theme-dark-btn"
+                class="theme-option"
+                type="button"
+                data-theme-choice="dark"
+                aria-pressed="true"
+              >
+                深色
+              </button>
+              <button
+                id="theme-light-btn"
+                class="theme-option"
+                type="button"
+                data-theme-choice="light"
+                aria-pressed="false"
+              >
+                浅色
+              </button>
+            </div>
+          </div>
+          <div class="settings-section">
+            <span class="field-label">本机主机（Host）</span>
+            <p class="hint" id="local-host-status">检查中…</p>
+            <form id="local-host-form" class="settings-form">
+              <label class="field-label" for="local-host-code">池码</label>
+              <input
+                id="local-host-code"
+                class="text-input code-input"
+                type="password"
+                maxlength="11"
+                placeholder="加入池的 8 位池码"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <label class="field-label" for="local-host-name">主机名称</label>
+              <input
+                id="local-host-name"
+                class="text-input"
+                type="text"
+                maxlength="60"
+                placeholder="例如：user-win-dsh"
+                autocomplete="off"
+              />
+              <label class="field-label" for="local-host-public-url">Public URL</label>
+              <input
+                id="local-host-public-url"
+                class="text-input"
+                type="text"
+                placeholder="http://127.0.0.1:4080"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <details class="local-host-advanced">
+                <summary>高级（端口 / DSH 路径）</summary>
+                <label class="field-label" for="local-host-admin-port">sidecar 端口</label>
+                <input id="local-host-admin-port" class="text-input" type="number" min="1" max="65535" />
+                <label class="field-label" for="local-host-dsh-port">dsh 端口</label>
+                <input id="local-host-dsh-port" class="text-input" type="number" min="1" max="65535" />
+                <label class="field-label" for="local-host-dsh-bin">DSH bin.js</label>
+                <input id="local-host-dsh-bin" class="text-input" type="text" spellcheck="false" />
+              </details>
+              <button id="local-host-start" class="btn btn-primary btn-sm" type="submit">
+                启动本机主机
+              </button>
+              <button id="local-host-stop" class="btn btn-danger-ghost btn-sm" type="button" hidden>
+                停止本机主机
+              </button>
+            </form>
+            <p class="hint">启动后本机作为主机加入池，需池主在「待审批」里批准；批准后即可被其他设备打开。</p>
+          </div>
+          <div class="settings-meta">
+            <div class="settings-meta-row">
+              <span>本机名称</span>
+              <code id="device-name">—</code>
+            </div>
+            <div class="settings-meta-row">
+              <span>角色</span>
+              <code id="role-text">—</code>
+            </div>
+            <div class="settings-meta-row">
+              <span>设备 ID</span>
+              <code id="device-id">—</code>
+            </div>
+          </div>
+          <button id="leave-pool-btn" class="btn btn-danger-ghost btn-sm" type="button" hidden>
+            离开当前池
+          </button>
+          <button id="exit-demo-btn" class="btn btn-secondary btn-sm" type="button" hidden>
+            退出演示，开始使用
+          </button>
+        </section>
+
+        <div id="banners" class="banners" hidden></div>
+
+        <main id="content" class="content">
+          <section id="onboarding" class="onboarding" hidden>
+            <div class="welcome">
+              <h2>开始使用</h2>
+              <p>创建一个池并邀请主机加入，或凭池码加入别人的池。</p>
+            </div>
+
+            <form id="create-form" class="panel">
+              <label class="field-label" for="pool-name-input">池名称</label>
+              <input
+                id="pool-name-input"
+                class="text-input"
+                type="text"
+                maxlength="60"
+                placeholder="例如：家庭主机池"
+                autocomplete="off"
+                required
+              />
+              <label class="field-label" for="create-key-input">创建密钥（服务端启用时填写）</label>
+              <input
+                id="create-key-input"
+                class="text-input"
+                type="password"
+                maxlength="128"
+                placeholder="没有启用可留空"
+                autocomplete="off"
+              />
+              <button id="create-btn" class="btn btn-primary btn-block" type="submit">
+                创建池
+              </button>
+            </form>
+
+            <div class="divider"><span>或</span></div>
+
+            <form id="join-form" class="panel">
+              <label class="field-label" for="join-code-input">凭池码加入</label>
+              <input
+                id="join-code-input"
+                class="text-input code-input"
+                type="text"
+                maxlength="11"
+                placeholder="输入 8 位池码"
+                autocomplete="off"
+                spellcheck="false"
+                required
+              />
+              <button id="join-btn" class="btn btn-secondary btn-block" type="submit">
+                加入池
+              </button>
+            </form>
+
+            <p class="footnote">
+              桌面端以「客户端」身份加入；主机接入后需由池主审批，通过后即可在此打开其 DSH 界面。
+            </p>
+          </section>
+
+          <section id="fleet" class="fleet" hidden>
+            <div id="pool-card" class="pool-card"></div>
+            <div id="host-bar" class="host-bar" hidden></div>
+
+            <section id="pending-section" class="section" hidden>
+              <h3 class="section-title">
+                待审批 <span id="pending-count" class="count"></span>
+              </h3>
+              <div id="pending-list" class="device-list"></div>
+            </section>
+
+            <section id="online-section" class="section">
+              <h3 class="section-title">
+                在线主机 <span id="online-count" class="count"></span>
+              </h3>
+              <div id="online-list" class="device-list"></div>
+            </section>
+
+            <section id="offline-section" class="section">
+              <h3 class="section-title">
+                离线 <span id="offline-count" class="count"></span>
+              </h3>
+              <div id="offline-list" class="device-list"></div>
+            </section>
+          </section>
+        </main>
+
+        <footer class="sidebar-footer">
+          <div class="conn">
+            <span id="conn-dot" class="dot dot-idle"></span>
+            <span id="conn-text">正在连接…</span>
+          </div>
+          <span id="updated-text" class="updated"></span>
+        </footer>
+      </aside>
+
+      <div id="sidebar-rail" class="sidebar-rail">
+        <button
+          id="sidebar-expand-btn"
+          class="icon-btn"
+          type="button"
+          title="展开侧边栏"
+          aria-label="展开侧边栏"
+        >
+          <span aria-hidden="true">»</span>
+        </button>
+      </div>
+
+      <section id="host-area" aria-label="主机界面区域">
+        <div class="placeholder">
+          <div class="placeholder-art" aria-hidden="true"><img class="brand-glyph brand-glyph-dark" src="brand-dark.svg" alt="" /><img class="brand-glyph brand-glyph-light" src="brand-light.svg" alt="" /></div>
+          <h2>选择一台主机开始</h2>
+          <p>
+            在左侧「在线主机」中点击 <strong>打开</strong>，这里会载入该主机的 DSH 界面。<br />
+            配对由 Directory 一次性签名完成，桌面端不直接持有主机密钥。
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

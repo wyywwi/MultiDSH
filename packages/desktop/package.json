@@ -1,0 +1,19 @@
+{
+  "name": "@multidsh/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MultiDSH desktop client (M0): fleet sidebar + embedded DSH host view",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "demo": "electron . --demo",
+    "smoke": "electron . --smoke --no-sandbox",
+    "smoke:demo": "electron . --smoke --smoke-demo --no-sandbox",
+    "smoke:live": "electron . --live-smoke --no-sandbox",
+    "package:win": "node ../../scripts/package-desktop.mjs",
+    "test": "node --test test/directory-client.test.cjs"
+  },
+  "devDependencies": {
+    "electron": "33.4.11"
+  }
+}

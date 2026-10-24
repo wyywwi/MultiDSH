@@ -1,0 +1,40 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "multidsh-directory"
+main = "src/index.js"
+compatibility_date = "2026-10-20"
+
+# Production uses D1 for pool/device/token/liveness. No KV binding is required.
+#   npx wrangler d1 create multidsh_directory
+# Public instances should also set a pool creation secret:
+#   npx wrangler secret put CREATE_POOL_KEY
+[[d1_databases]]
+binding = "FLEET_DB"
+database_name = "multidsh_directory"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# Abuse protection for the two unauthenticated endpoints. The Rate Limiting
+# API is approximate per Cloudflare location, but it is free and does not write
+# to D1.
+[[ratelimits]]
+name = "CREATE_POOL_RATE_LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 3
+  period = 60
+
+[[ratelimits]]
+name = "JOIN_RATE_LIMITER"
+namespace_id = "1002"
+
+  [ratelimits.simple]
+  limit = 10
+  period = 60
+
+# Optional custom domain (or add it in Dashboard → Worker → Domains & Routes):
+# routes = [
+#   { pattern = "multidsh.example.com", custom_domain = true }
+# ]
+
+[observability]
+enabled = true

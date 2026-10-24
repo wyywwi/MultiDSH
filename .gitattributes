@@ -1,0 +1,6 @@
+# Keep shell entrypoints LF so `curl | bash` and Linux extracts work even when
+# the repository is cloned/exported from Windows.
+* text=auto
+*.sh text eol=lf
+multidsh text eol=lf
+*.service.example text eol=lf

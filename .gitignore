@@ -1,0 +1,31 @@
+node_modules/
+.tmp/
+dist/
+out/
+data/
+*.log
+
+# local editor / OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.local
+
+# local credentials (never commit)
+.env
+.env.*
+.dev.vars
+*.pem
+*.key
+*.p12
+*.pfx
+
+# release/build artifacts outside dist/
+*.apk
+*.aab
+*.zip
+*.tar.gz
+*.7z
+*.bak
+
