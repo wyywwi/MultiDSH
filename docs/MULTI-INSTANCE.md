@@ -110,7 +110,7 @@ Directory 把它保存在设备记录/心跳里，桌面端的「在线主机」
 
 桌面端点「设置」会打开独立窗口，其中的「DSH 主机实例」管理**本机所有桌面托管的实例**：
 
-- 旧版单实例保留为 `default`（数据继续放在 `%APPDATA%\MultiDSH\local-host`），不会被迁移或重新初始化；
+- 已有的单实例配置保留为 `default`（数据继续放在 `%APPDATA%\MultiDSH\local-host`），不会被迁移或重新初始化；
 - 新实例放在 `%APPDATA%\MultiDSH\local-hosts/<id>/`，各自拥有独立的 `host.json`、`DSH_HOME`、
   `adminPort`、`dshPort`，以及独立的 Directory 设备身份；
 - 启动已有实例时执行的是 `host run --config host.json`，**不会再次执行 `host init`**，所以

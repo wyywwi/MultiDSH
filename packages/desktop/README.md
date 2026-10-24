@@ -233,7 +233,7 @@ owner 可见待审批 → 批准 → 心跳 → 列表 → pair → 吊销 的�
 - `config.json`：池会话 / 设备身份 / 主题 / `autoStartLocalHost`；
 - `local-host\host.json`：本机主机侧车配置；`local-host\dsh-home\` 是它自己的 DSH 数据。
 
-打包版首次启动会把旧版 exe 旁边的 `multidsh-config.json` 和 `local-host\` 迁移过来（含
+如果 exe 旁边已有 `multidsh-config.json` 和 `local-host\`，打包版首次启动会把它迁移过来（含
 `host.json` 里的绝对路径改写）。想恢复“整个文件夹拷走”的便携模式，在 exe 旁边放一个
 空文件 `multidsh-portable.txt`。
 

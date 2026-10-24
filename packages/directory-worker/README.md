@@ -119,4 +119,4 @@ device_liveness(device_id PK, last_seen_at, public_url, version,
 | 存储 | JSON 文件 + 原子写 | D1（pool/device/token/liveness） |
 | 加密 | node:crypto / Buffer | WebCrypto / Uint8Array |
 | 部署 | 单进程 | Cloudflare 边缘 |
-| 配对 nonce | HMAC-SHA256 | HMAC-SHA256（同一线格式，交叉测试通过） |
+| 配对 nonce | HMAC-SHA256 | HMAC-SHA256（同一线格式） |

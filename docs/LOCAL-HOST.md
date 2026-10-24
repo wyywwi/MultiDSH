@@ -48,7 +48,7 @@ cd multidsh
 1. 双击 `MultiDSH.exe` → 若在演示模式，点「退出演示，开始使用」→ **创建池**
    （或凭池码加入别人的池）。
 2. 右上角 **⚙** 打开**独立设置窗口** →「DSH 主机实例」。
-3. 旧版单实例显示为 `default`（数据仍在 `%APPDATA%\MultiDSH\local-host`）；点 **「启动」** 即复用它的
+3. 已有的单实例配置显示为 `default`（数据仍在 `%APPDATA%\MultiDSH\local-host`）；点 **「启动」** 即复用它的
    `host.json` 和 `DSH_HOME`，不会重新初始化。
 4. （可选）点 **「+ 新建实例」** 创建另一个独立 DSH host：填写实例名，池码会自动填好；
    每个实例有自己的 `host.json`、`DSH_HOME`、admin/dsh 端口和 Directory 身份。可以选择复用已有实例的
